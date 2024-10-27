@@ -9,13 +9,35 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^14.0.2",
+    "@react-native-async-storage/async-storage": "^2.0.0",
+    "@react-native-community/datetimepicker": "^8.2.0",
+    "@react-navigation/bottom-tabs": "^6.6.1",
+    "@react-navigation/native": "^6.1.18",
+    "@react-navigation/stack": "^6.4.1",
+    "@rneui/themed": "^4.0.0-rc.8",
+    "cocoapods": "^0.0.0",
     "expo": "~51.0.28",
+    "expo-local-authentication": "^14.0.1",
     "expo-status-bar": "~1.12.1",
+    "popmotion": "^11.0.5",
     "react": "18.2.0",
-    "react-native": "0.74.5"
+    "react-ios-switch": "^0.1.19",
+    "react-native": "0.74.5",
+    "react-native-calendars": "^1.1307.0",
+    "react-native-local-authentication": "^0.1.1",
+    "react-native-paper": "^5.12.5",
+    "react-native-sfsymbols": "^1.2.2",
+    "react-native-svg": "^15.6.0",
+    "react-native-switch-pro": "^1.0.5",
+    "react-native-toggle-input": "^1.0.12",
+    "react-native-ui-datepicker": "^2.0.4",
+    "react-native-vector-icons": "^10.1.0",
+    "vector-icons": "^0.1.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.0"
+    "@babel/core": "^7.20.0",
+    "react-native-svg-transformer": "^1.5.0"
   },
   "private": true
 }
