@@ -8,8 +8,7 @@ import {
     Image,
 } from "react-native";
 import { useTheme } from "../Contexts/ThemeContext"; 
-import { useFavorites } from "../Contexts/FavoritesContext"; // Importar el contexto de favoritos
-import { frasesList } from "../Elements/Frases"; // Importar la lista de frases
+import { useFavorites } from "../Contexts/FavoritesContext"; // Importar el contexto de favoritos// Importar la lista de frases
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Si es necesario para guardar las favoritas
 import { EmojiRow } from "../Elements/EmojiRow";
 import { useEmotions } from "../Contexts/EmotionsContext"; // Importa el contexto de emociones
@@ -35,17 +34,29 @@ const Start = (props) => {
     const { isDarkMode, toggleTheme } = useTheme();
     const { favorites } = useFavorites(); // Obtener las frases favoritas del contexto
     const [favoritePhrase, setFavoritePhrase] = useState(null); // Estado para la frase favorita
+    const API_BASE_URL = "http://localhost:8080/api/phrases";
 
     useEffect(() => {
-        // Buscar y establecer una frase favorita al cargar el componente
-        if (favorites.length > 0) {
-            const favoritePhrases = frasesList.filter((frase) => favorites.includes(frase.id));
-            if (favoritePhrases.length > 0) {
-                // Elegir una frase al azar o la primera de la lista
-                setFavoritePhrase(favoritePhrases[Math.floor(Math.random() * favoritePhrases.length)].frase);
+        const fetchFavoritePhrases = async () => {
+            try {
+                if (favorites.length > 0) {
+                    const response = await fetch(`${API_BASE_URL}/favorites`);
+                    const data = await response.json();
+    
+                    if (data.length > 0) {
+                        // Elegir una frase al azar o la primera de la lista
+                        const randomPhrase = data[Math.floor(Math.random() * data.length)].phrase;
+                        setFavoritePhrase(randomPhrase);
+                    }
+                }
+            } catch (error) {
+                console.error("Error fetching favorite phrases:", error);
             }
-        }
+        };
+    
+        fetchFavoritePhrases();
     }, [favorites]);
+    
 
     return (
         <View style={styles.container}>

@@ -8,11 +8,9 @@ import {
     Image,
     FlatList,
 } from "react-native";
-import { Switch } from "react-native-paper";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useFavorites } from "../Contexts/FavoritesContext";
-import { frasesList } from "../Elements/Frases";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from "@react-navigation/native";
 
 // Wallpaper
 const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
@@ -22,46 +20,80 @@ const star_fill = require("../../assets/IconosTexto/star_fill.png");
 const star_slash = require("../../assets/IconosTexto/star_slash.png");
 
 const ListFrasesFav = ({ navigation }) => {
-    // Obtener `favorites` y `setFavorites` desde el contexto de favoritos
-    const { favorites, setFavorites } = useFavorites();
     const { isDarkMode, toggleTheme } = useTheme();
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
+    const [phrases, setPhrases] = useState([]);
+    const API_BASE_URL = "http://localhost:8080/api/phrases";
+    const { favorites, toggleFavorite, removeFavorite } = useFavorites();
     const [removingFavorites, setRemovingFavorites] = useState([]);
 
-    // Cargar frases favoritas desde AsyncStorage al cargar la app
-    useEffect(() => {
-        const loadFavorites = async () => {
-            const savedFavorites = await AsyncStorage.getItem('favorites');
-            if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
-        };
-        loadFavorites();
-    }, []);
 
-    // Guardar favoritos en AsyncStorage
-    const saveFavorites = async (favorites) => {
-        setFavorites(favorites);
-        await AsyncStorage.setItem('favorites', JSON.stringify(favorites));
+
+    useEffect(() => {
+        const fetchFavoritePhrases = async () => {
+            try {
+                const response = await fetch(API_BASE_URL);
+                const allPhrases = await response.json();
+                const favoritePhrases = allPhrases.filter((phrase) => favorites.includes(phrase.id));
+                setPhrases(favoritePhrases);
+            } catch (error) {
+                console.error("Error fetching favorite phrases:", error);
+            }
+        };
+
+        fetchFavoritePhrases();
+    }, [favorites]);
+
+    const handleToggleFavorite = async (id) => {
+        if (removingFavorites.includes(id)) return;
+
+        setRemovingFavorites((prev) => [...prev, id]);
+
+        try {
+            // Actualizar el estado del favorito en la base de datos
+            await updateFavoriteStatus(id); // Llamada para actualizar en la base de datos
+            toggleFavorite(id); // Cambiar el estado localmente en la app
+        } catch (error) {
+            console.error("Error al cambiar el estado del favorito:", error);
+        }
+
+        setTimeout(() => {
+            setRemovingFavorites((prev) => prev.filter((item) => item !== id));
+        }, 100);
     };
 
-    const toggleFavorite = async (item) => {
-        if (favorites.includes(item.id)) {
-            // Si la frase ya es un favorito y está siendo desmarcada
-            setRemovingFavorites([...removingFavorites, item.id]);
-            setTimeout(() => {
-                const updatedFavorites = favorites.filter((fav) => fav !== item.id); // Remover de favoritos
-                setFavorites(updatedFavorites);
-                // Guardar en AsyncStorage
-                AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
-                setRemovingFavorites(removingFavorites.filter((id) => id !== item.id)); // Quitar del estado temporal
-            }, 500); // Delay para la animación
-        } else {
-            // Si no está en favoritos, agregarla
-            const updatedFavorites = [...favorites, item.id];
-            setFavorites(updatedFavorites);
-            // Guardar en AsyncStorage
-            AsyncStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+
+
+
+    useFocusEffect(
+        React.useCallback(() => {
+            const removeUnfavoritedPhrases = () => {
+                phrases.forEach((phrase) => {
+                    if (!favorites.includes(phrase.id)) {
+                        removeFavorite(phrase.id);
+                    }
+                });
+            };
+
+            removeUnfavoritedPhrases();
+
+            return () => { };
+        }, [favorites, phrases])
+    );
+    const updateFavoriteStatus = async (id) => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/${id}/favorite`, {
+                method: 'POST', 
+            });
+            if (!response.ok) {
+                throw new Error('Error al actualizar el estado de favorito');
+            }
+        } catch (error) {
+            console.error('Error al actualizar el estado de favorito en la base de datos:', error);
         }
     };
+
+
 
     return (
         <View style={styles.container}>
@@ -84,26 +116,29 @@ const ListFrasesFav = ({ navigation }) => {
                 </View>
 
                 <View style={styles.card}>
-                <FlatList
-                        data={frasesList.filter(item => favorites.includes(item.id))}
+                    <FlatList
+                        data={phrases}
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={({ item }) => (
-                            <View style={[styles.fraseContainer, { backgroundColor: isDarkMode ? "rgb(163, 169, 184)" : "white" }]}>
-                                <Text style={[styles.fraseText, { color: isDarkMode ? "white" : "black" }]}>{item.frase}</Text>
-
-                                <TouchableOpacity onPress={() => toggleFavorite(item)}>
+                            <View style={styles.fraseContainer}>
+                                <Text style={styles.fraseText}>{item.phrase}</Text>
+                                <TouchableOpacity onPress={() => handleToggleFavorite(item.id)}>
                                     <Image
-                                        source={
-                                            removingFavorites.includes(item.id) ? star_slash : star_fill
+                                        source={favorites.includes(item.id) && !removingFavorites.includes(item.id)
+                                            ? star_fill
+                                            : star_slash
                                         }
-                                        style={[styles.staroflife, { tintColor: isDarkMode ? "rgb(78, 88, 100)" : "rgb(158, 158, 158)" }]}
+                                        style={[
+                                            styles.staroflife,
+                                            { tintColor: isDarkMode ? "rgb(78, 88, 100)" : "rgb(158, 158, 158)" },
+                                        ]}
                                     />
                                 </TouchableOpacity>
                             </View>
                         )}
-                    /> 
+                    />
 
-                    
+
                 </View>
             </ImageBackground>
         </View>
@@ -153,7 +188,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowOffset: { width: 0, height: 4 },
         shadowRadius: 4,
-        elevation: 5, // Sombra en Android
+        elevation: 5,
     },
     fraseText: {
         fontSize: 14,
@@ -163,7 +198,7 @@ const styles = StyleSheet.create({
     staroflife: {
         width: 20,
         height: 20,
-        tintColor: "#FFD700", // Color dorado para la estrella
+        tintColor: "#FFD700",
         marginLeft: 10,
     },
     fila: {

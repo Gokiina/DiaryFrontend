@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     ImageBackground,
@@ -8,10 +8,8 @@ import {
     Image,
     FlatList,
 } from "react-native";
-import { Switch } from "react-native-paper";
 import { useTheme } from "../Contexts/ThemeContext";
-import { frasesList } from "../Elements/Frases";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFavorites } from "./../Contexts/FavoritesContext";
 import { useFocusEffect } from "@react-navigation/native";
 // Wallpaper
 const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
@@ -26,41 +24,71 @@ const star = require("../../assets/IconosTexto/star.png");
 const ListFrases = (props) => {
     const { isDarkMode, toggleTheme } = useTheme();
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
-    const [favorites, setFavorites] = useState([]);
+    const { favorites, toggleFavorite, removeFavorite } = useFavorites();
+    const [phrases, setPhrases] = useState([]);
+    const API_BASE_URL = "http://localhost:8080/api/phrases";
 
-    // Cargar frases favoritas desde AsyncStorage al cargar la app
-    useEffect(() => {
-        const loadFavorites = async () => {
-            const savedFavorites = await AsyncStorage.getItem("favorites");
-            if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
-        };
-        loadFavorites();
-    }, []);
-
-    // Guardar favoritos en AsyncStorage
-    const saveFavorites = async (favorites) => {
-        setFavorites(favorites);
-        await AsyncStorage.setItem("favorites", JSON.stringify(favorites));
-    };
-
-    // Marcar o desmarcar una frase como favorita
-    const toggleFavorite = (item) => {
-        if (favorites.includes(item.id)) {
-            saveFavorites(favorites.filter((id) => id !== item.id));
-        } else {
-            saveFavorites([...favorites, item.id]);
+    // Obtener todas las frases desde el backend
+    const fetchAllPhrases = async () => {
+        try {
+            const response = await fetch(API_BASE_URL);
+            if (!response.ok) {
+                throw new Error("Error al obtener las frases");
+            }
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error("Error al cargar todas las frases desde la base de datos:", error);
+            return [];
         }
     };
-    // Usar useFocusEffect para recargar favoritos cada vez que la pantalla de frases vuelve a estar en foco
+
+    // Cargar las frases al iniciar el componente
+    useEffect(() => {
+        const loadPhrases = async () => {
+            const allPhrases = await fetchAllPhrases();
+            setPhrases(allPhrases);
+        };
+        loadPhrases();
+    }, []);
+
+    // Recargar las frases cuando la pantalla se enfoque
     useFocusEffect(
-        React.useCallback(() => {
-            const loadFavorites = async () => {
-                const savedFavorites = await AsyncStorage.getItem("favorites");
-                if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
+        useCallback(() => {
+            const loadPhrases = async () => {
+                const allPhrases = await fetchAllPhrases();
+                setPhrases(allPhrases);
             };
-            loadFavorites();
+            loadPhrases();
         }, [])
     );
+
+
+    const handleToggleFavorite = async (id) => {
+        if (removingFavorites.includes(id)) return; 
+
+        setRemovingFavorites((prev) => [...prev, id]);
+
+        try {
+
+            const url = `http://localhost:8080/api/phrases/${id}/favorite`;
+            await fetch(url, { method: "POST" });
+            toggleFavorite(id);
+        } catch (error) {
+            console.error("Error al cambiar el estado del favorito:", error);
+        }
+
+        setTimeout(() => {
+            setRemovingFavorites((prev) => prev.filter((item) => item !== id));
+        }, 500);
+    };
+
+
+    const isFavorite = (id) => {
+        return favorites.includes(id);
+    };
+
+
     return (
         <View style={styles.container}>
             <ImageBackground
@@ -130,8 +158,8 @@ const ListFrases = (props) => {
 
                 <View style={styles.card}>
                     <FlatList
-                        data={frasesList}
-                        keyExtractor={(item) => item.id.toString()}
+                        data={phrases}
+                        keyExtractor={(item) => item.id}
                         renderItem={({ item }) => (
                             <View
                                 style={[
@@ -153,27 +181,18 @@ const ListFrases = (props) => {
                                         },
                                     ]}
                                 >
-                                    {item.frase}
+                                    {item.phrase}
                                 </Text>
-                                <TouchableOpacity
-                                    onPress={() => toggleFavorite(item)}
-                                >
-                                    <Image
-                                        source={
-                                            favorites.includes(item.id)
-                                                ? star_fill
-                                                : star
-                                        }
-                                        style={[
-                                            styles.staroflife,
-                                            {
-                                                tintColor: isDarkMode
-                                                    ? "rgb(78, 88, 100)"
-                                                    : "rgb(158, 158, 158)",
-                                            },
-                                        ]}
-                                    />
-                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
+                                <Image
+                                    source={isFavorite(item.id) ? star_fill : star}
+                                    style={[
+                                        styles.staroflife,
+                                        { tintColor: isDarkMode ? "rgb(78, 88, 100)" : "rgb(158, 158, 158)" },
+                                    ]}
+                                />
+                            </TouchableOpacity>
+
                             </View>
                         )}
                     />
