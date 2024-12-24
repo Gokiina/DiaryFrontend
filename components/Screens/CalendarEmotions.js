@@ -13,7 +13,7 @@ import dayjs from "dayjs";
 
 
 //  CONTEXTS
-import { useTheme } from "../Contexts/ThemeContext"; // Importamos el hook del tema
+import { useTheme } from "../Contexts/ThemeContext"; 
 
 // Wallpaper
 const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
@@ -24,26 +24,24 @@ const flecha = require("../../assets/IconosTexto/flecha.png");
 const mind = require("../../assets/IconosTexto/mind.png");
 const staroflife = require("../../assets/IconosTexto/staroflife.png");
 
-const CalendarEstados = (props) => {
-    const { isDarkMode, toggleTheme } = useTheme(); // Usamos el contexto para manejar el tema
+const CalendarEmotions = (props) => {
+    const { isDarkMode, toggleTheme } = useTheme(); 
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
 
-    // Acceder al contexto de settings
+
     const [selectedEmojis, setSelectedEmojis] = useState({});
     const [date, setDate] = useState(dayjs());
-    // Función para manejar el toggle del Dark Mode
+
     const DarkModeSwitch = (value) => {
         setDarkModeEnabled(value);
         toggleTheme();
     };
 
-    // Función para seleccionar un emoji para una fecha
     const selectEmoji = (day) => {
-        // Aquí podrías navegar a otra pantalla para seleccionar un emoji, por ejemplo
-        // Y luego almacenar ese emoji para la fecha seleccionada
-        const selectedEmoji = "😁"; // Suponiendo que este es el emoji seleccionado en otra pantalla
 
-        // Almacena el emoji en el estado
+        const selectedEmoji = "😁"; 
+
+
         setSelectedEmojis({
             ...selectedEmojis,
             [day.dateString]: selectedEmoji,
@@ -132,13 +130,13 @@ const CalendarEstados = (props) => {
                             firstDayOfWeek={1}
                             headerButtonsPosition="right"
                             headerButtonColor="rgba(0, 122, 255, 1)"
-                            // Sombra y fondo para el calendario
+
                             todayContainerStyle={{
                                 borderWidth: 0,
                             }}
                             calendarTextStyle={{
                                 fontSize: 20,
-                                color: isDarkMode ? "white" : "black", // Cambiar color de los días
+                                color: isDarkMode ? "white" : "black",
                             }}
                             weekDaysContainerStyle={{
                                 borderColor: 0,
@@ -284,7 +282,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         position: "absolute",
-        padding: 10,
+        padding: 15,
     },
     iconoTitulo: {
         width: 18,
@@ -344,7 +342,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.5)", // Fondo semitransparente
+        backgroundColor: "rgba(0, 0, 0, 0.5)", 
     },
     pickerContainer: {
         backgroundColor: "white",
@@ -366,8 +364,8 @@ const styles = StyleSheet.create({
     summaryContainer: {
         marginTop: 40,
         backgroundColor: "rgba(255, 255, 255, 1)",
-        borderRadius: 12,
-        padding: 10,
+        borderRadius: 20,
+        padding: 15,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 7 },
         shadowOpacity: 0.3,
@@ -399,5 +397,4 @@ const styles = StyleSheet.create({
     },
 });
 
-// Exportamos solo Ajustes
-export default CalendarEstados;
+export default CalendarEmotions;

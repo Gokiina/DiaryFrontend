@@ -14,10 +14,10 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import * as LocalAuthentication from "expo-local-authentication";
 
 //  CONTEXTS
-import { useTheme } from "../Contexts/ThemeContext"; // Importamos el hook del tema
+import { useTheme } from "../Contexts/ThemeContext"; 
 import { SettingsContext } from "../Contexts/SettingsContext";
 
-import Separador from "../Elements/Separador";
+import Separator from "../Elements/Separator";
 
 // Wallpaper
 const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
@@ -28,7 +28,7 @@ const flecha = require("../../assets/IconosTexto/flecha.png");
 const mind = require("../../assets/IconosTexto/mind.png");
 
 const Base = (props) => {
-    const { isDarkMode, toggleTheme } = useTheme(); // Usamos el contexto para manejar el tema
+    const { isDarkMode, toggleTheme } = useTheme();
 
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
     const [showPicker, setShowPicker] = useState(false);
@@ -94,24 +94,23 @@ const Base = (props) => {
         }
     };
 
-    // Función para manejar el toggle del Dark Mode
+
     const DarkModeSwitch = (value) => {
         setDarkModeEnabled(value);
         toggleTheme();
     };
     const onTimeChange = (event, selectedTime) => {
         const currentTime = selectedTime || time;
-        setShowPicker(Platform.OS === "ios"); // Para iOS
+        setShowPicker(Platform.OS === "ios");
         setTime(currentTime);
     };
 
-    // Función para mostrar la hora en formato 12 horas con AM/PM
     const formatTime = (time) => {
         let hours = time.getHours();
         const minutes = time.getMinutes();
         const suffix = hours >= 12 ? "PM" : "AM";
 
-        hours = hours % 12 || 12; // Convierte la hora a formato 12 horas
+        hours = hours % 12 || 12;
         const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
 
         return `${hours}:${formattedMinutes} ${suffix}`;
@@ -150,8 +149,6 @@ const Base = (props) => {
                         </Text>
                     </TouchableOpacity>
                 </View>
-
-                {/* Título Ajustes */}
                 <View style={styles.lineaTitulo}>
                 <Image
                                 source={mind}
@@ -273,7 +270,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.5)", // Fondo semitransparente
+        backgroundColor: "rgba(0, 0, 0, 0.5)", 
     },
     pickerContainer: {
         backgroundColor: "white",
@@ -285,5 +282,4 @@ const styles = StyleSheet.create({
     },
 });
 
-// Exportamos solo Ajustes
-export default Base;
+export default Plantilla;

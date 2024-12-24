@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
     View,
     ImageBackground,
@@ -8,18 +8,18 @@ import {
     Image,
     FlatList,
 } from "react-native";
-import { useTheme } from "../Contexts/ThemeContext";
-import { useFavorites } from "../Contexts/FavoritesContext";
+import { useTheme } from "../../Contexts/ThemeContext";
+import { useFavorites } from "../../Contexts/FavoritesContext";
 import { useFocusEffect } from "@react-navigation/native";
 
 // Wallpaper
-const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
-const backGroundBlack = require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
-const flecha = require("../../assets/IconosTexto/flecha.png");
-const star_fill = require("../../assets/IconosTexto/star_fill.png");
-const star_slash = require("../../assets/IconosTexto/star_slash.png");
+const backGround = require("../../../assets/Imag/Wallpaper/Wallpaper.jpg");
+const backGroundBlack = require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
+const flecha = require("../../../assets/IconosTexto/flecha.png");
+const star_fill = require("../../../assets/IconosTexto/star_fill.png");
+const star_slash = require("../../../assets/IconosTexto/star_slash.png");
 
-const ListFrasesFav = ({ navigation }) => {
+const PhrasesFavorite = ({ navigation }) => {
     const { isDarkMode, toggleTheme } = useTheme();
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
     const [phrases, setPhrases] = useState([]);
@@ -28,6 +28,8 @@ const ListFrasesFav = ({ navigation }) => {
     const [removingFavorites, setRemovingFavorites] = useState([]);
 
 
+
+    const favoritesRef = useRef(favorites);
 
     useEffect(() => {
         const fetchFavoritePhrases = async () => {
@@ -40,50 +42,54 @@ const ListFrasesFav = ({ navigation }) => {
                 console.error("Error fetching favorite phrases:", error);
             }
         };
-
+    
         fetchFavoritePhrases();
-    }, [favorites]);
+    }, []); 
+    
+    
 
-    const handleToggleFavorite = async (id) => {
+    const handleToggleFavorite = (id) => {
         if (removingFavorites.includes(id)) return;
-
+    
         setRemovingFavorites((prev) => [...prev, id]);
-
-        try {
-            // Actualizar el estado del favorito en la base de datos
-            await updateFavoriteStatus(id); // Llamada para actualizar en la base de datos
-            toggleFavorite(id); // Cambiar el estado localmente en la app
-        } catch (error) {
-            console.error("Error al cambiar el estado del favorito:", error);
-        }
-
-        setTimeout(() => {
-            setRemovingFavorites((prev) => prev.filter((item) => item !== id));
-        }, 100);
+    
+        // Optimistamente quita el favorito del estado local antes de enviar la solicitud
+        toggleFavorite(id); 
+    
+        updateFavoriteStatus(id)
+            .catch((error) => {
+                console.error("Error al cambiar el estado del favorito:", error);
+                // Revertir el cambio si falla
+                toggleFavorite(id);
+            })
+            .finally(() => {
+                setRemovingFavorites((prev) => prev.filter((item) => item !== id));
+            });
     };
-
+    
+    
 
 
 
     useFocusEffect(
-        React.useCallback(() => {
-            const removeUnfavoritedPhrases = () => {
-                phrases.forEach((phrase) => {
-                    if (!favorites.includes(phrase.id)) {
-                        removeFavorite(phrase.id);
-                    }
-                });
+        useCallback(() => {
+            const syncFavorites = () => {
+                setPhrases((prevPhrases) =>
+                    prevPhrases.filter((phrase) => favorites.includes(phrase.id))
+                );
             };
-
-            removeUnfavoritedPhrases();
-
-            return () => { };
-        }, [favorites, phrases])
+    
+            syncFavorites();
+    
+            return () => {};
+        }, [favorites])
     );
-    const updateFavoriteStatus = async (id) => {
+    
+    
+    const updateFavoriteStatus = useCallback(async (id) => {
         try {
             const response = await fetch(`${API_BASE_URL}/${id}/favorite`, {
-                method: 'POST', 
+                method: 'POST',
             });
             if (!response.ok) {
                 throw new Error('Error al actualizar el estado de favorito');
@@ -91,7 +97,8 @@ const ListFrasesFav = ({ navigation }) => {
         } catch (error) {
             console.error('Error al actualizar el estado de favorito en la base de datos:', error);
         }
-    };
+    }, []);
+    
 
 
 
@@ -102,7 +109,7 @@ const ListFrasesFav = ({ navigation }) => {
                 style={styles.backGround}
             >
                 <View style={styles.lineaVolver}>
-                    <TouchableOpacity onPress={() => navigation.navigate("ListFrases")}>
+                    <TouchableOpacity onPress={() => navigation.navigate("Phrases")}>
                         <Text style={{ color: isDarkMode ? "#FFFFFF" : "#007AFF", fontSize: 18 }}>
                             <Image source={flecha} style={[styles.iconoTexto, { tintColor: isDarkMode ? "white" : "#007AFF" }]} />
                             Volver
@@ -224,4 +231,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ListFrasesFav;
+export default PhrasesFavorite;

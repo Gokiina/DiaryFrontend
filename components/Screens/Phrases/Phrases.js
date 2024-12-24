@@ -8,27 +8,26 @@ import {
     Image,
     FlatList,
 } from "react-native";
-import { useTheme } from "../Contexts/ThemeContext";
-import { useFavorites } from "./../Contexts/FavoritesContext";
+import { useTheme } from "../../Contexts/ThemeContext";
+import { useFavorites } from "../../Contexts/FavoritesContext";
 import { useFocusEffect } from "@react-navigation/native";
 // Wallpaper
-const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
-const backGroundBlack = require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
+const backGround = require("../../../assets/Imag/Wallpaper/Wallpaper.jpg");
+const backGroundBlack = require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
 
 // ICONOS DE TEXTO
-const flecha = require("../../assets/IconosTexto/flecha.png");
-const sparkles = require("../../assets/IconosTexto/sparkles.png");
-const star_fill = require("../../assets/IconosTexto/star_fill.png");
-const star = require("../../assets/IconosTexto/star.png");
+const flecha = require("../../../assets/IconosTexto/flecha.png");
+const sparkles = require("../../../assets/IconosTexto/sparkles.png");
+const star_fill = require("../../../assets/IconosTexto/star_fill.png");
+const star = require("../../../assets/IconosTexto/star.png");
 
-const ListFrases = (props) => {
+const Phrases = (props) => {
     const { isDarkMode, toggleTheme } = useTheme();
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
     const { favorites, toggleFavorite, removeFavorite } = useFavorites();
     const [phrases, setPhrases] = useState([]);
     const API_BASE_URL = "http://localhost:8080/api/phrases";
 
-    // Obtener todas las frases desde el backend
     const fetchAllPhrases = async () => {
         try {
             const response = await fetch(API_BASE_URL);
@@ -43,7 +42,6 @@ const ListFrases = (props) => {
         }
     };
 
-    // Cargar las frases al iniciar el componente
     useEffect(() => {
         const loadPhrases = async () => {
             const allPhrases = await fetchAllPhrases();
@@ -52,7 +50,6 @@ const ListFrases = (props) => {
         loadPhrases();
     }, []);
 
-    // Recargar las frases cuando la pantalla se enfoque
     useFocusEffect(
         useCallback(() => {
             const loadPhrases = async () => {
@@ -123,7 +120,7 @@ const ListFrases = (props) => {
 
                 <TouchableOpacity
                     onPress={() =>
-                        props.navigation.navigate("ListFrasesFav", {
+                        props.navigation.navigate("PhrasesFavorite", {
                             favorites,
                         })
                     }
@@ -240,7 +237,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowOffset: { width: 0, height: 4 },
         shadowRadius: 4,
-        elevation: 5, // Sombra en Android
+        elevation: 5, 
     },
     fraseContainer: {
         flexDirection: "row",
@@ -255,17 +252,17 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowOffset: { width: 0, height: 4 },
         shadowRadius: 4,
-        elevation: 5, // Sombra en Android
+        elevation: 5, 
     },
     fraseText: {
         fontSize: 14,
         color: "#333",
-        flex: 1, // Para asegurarse de que el texto ocupe el máximo espacio posible
+        flex: 1, 
     },
     staroflife: {
         width: 20,
         height: 20,
-        tintColor: "#FFD700", // Color dorado para la estrella
+        tintColor: "#FFD700",
         marginLeft: 10,
     },
     fila: {
@@ -292,4 +289,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ListFrases;
+export default Phrases;

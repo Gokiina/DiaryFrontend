@@ -1,25 +1,43 @@
-import React, { createContext, useState, useContext } from 'react';
-import { useColorScheme } from 'react-native';
+import React, { createContext, useState, useEffect, useContext } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Crear el contexto
 const ThemeContext = createContext();
 
-// Proveedor de tema
-export const ThemeProvider = ({ children }) => {
-  const systemScheme = useColorScheme();  // Obtenemos el esquema de color del sistema
-  const [isDarkMode, setIsDarkMode] = useState(systemScheme === 'dark');
-
-  // Alternar entre modo oscuro y claro
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-
-  return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+export const useTheme = () => {
+    return useContext(ThemeContext);
 };
 
-// Hook para usar el contexto en cualquier componente
-export const useTheme = () => useContext(ThemeContext);
+export const ThemeProvider = ({ children }) => {
+    const [isDarkMode, setIsDarkMode] = useState(false);
+
+    useEffect(() => {
+        const loadTheme = async () => {
+            try {
+                const storedTheme = await AsyncStorage.getItem("isDarkMode");
+                if (storedTheme !== null) {
+                    setIsDarkMode(JSON.parse(storedTheme)); 
+                }
+            } catch (error) {
+                console.error("Error loading theme:", error);
+            }
+        };
+
+        loadTheme();
+    }, []);
+
+    const toggleTheme = async () => {
+        const newTheme = !isDarkMode;
+        setIsDarkMode(newTheme);
+        try {
+            await AsyncStorage.setItem("isDarkMode", JSON.stringify(newTheme)); 
+        } catch (error) {
+            console.error("Error saving theme:", error);
+        }
+    };
+
+    return (
+        <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
+            {children}
+        </ThemeContext.Provider>
+    );
+};

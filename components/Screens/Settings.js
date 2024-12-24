@@ -14,10 +14,10 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import * as LocalAuthentication from "expo-local-authentication";
 
 //  CONTEXTS
-import { useTheme } from "../Contexts/ThemeContext"; // Importamos el hook del tema
+import { useTheme } from "../Contexts/ThemeContext"; 
 import { SettingsContext } from "../Contexts/SettingsContext";
 
-import Separador from "../Elements/Separador";
+import Separator from "../Elements/Separator";
 
 // Wallpaper
 const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
@@ -26,7 +26,7 @@ const backGroundBlack = require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg
 // ICONOS DE TEXTO
 const flecha = require("../../assets/IconosTexto/flecha.png");
 
-const Ajustes = (props) => {
+const Settings = (props) => {
     const { isDarkMode, toggleTheme } = useTheme();
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
     const [showPicker, setShowPicker] = useState(false);
@@ -94,24 +94,23 @@ const Ajustes = (props) => {
         }
     };
 
-    // Función para manejar el toggle del Dark Mode
     const DarkModeSwitch = (value) => {
         setDarkModeEnabled(value);
         toggleTheme();
     };
     const onTimeChange = (event, selectedTime) => {
         const currentTime = selectedTime || time;
-        setShowPicker(Platform.OS === "ios"); // Para iOS
+        setShowPicker(Platform.OS === "ios");
         setTime(currentTime);
     };
 
-    // Función para mostrar la hora en formato 12 horas con AM/PM
+
     const formatTime = (time) => {
         let hours = time.getHours();
         const minutes = time.getMinutes();
         const suffix = hours >= 12 ? "PM" : "AM";
 
-        hours = hours % 12 || 12; // Convierte la hora a formato 12 horas
+        hours = hours % 12 || 12; 
         const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
 
         return `${hours}:${formattedMinutes} ${suffix}`;
@@ -152,7 +151,7 @@ const Ajustes = (props) => {
                     </TouchableOpacity>
                 </View>
 
-                {/* Título Ajustes */}
+                {/* Título Settings */}
                 <Title
                     style={[
                         styles.titulo,
@@ -234,7 +233,7 @@ const Ajustes = (props) => {
                             </Modal>
                         </View>
                     </View>
-                    <Separador></Separador>
+                    <Separator></Separator>
 
                     {/* Opción de Modo Nocturno */}
                     <View style={styles.fila}>
@@ -251,7 +250,7 @@ const Ajustes = (props) => {
                             color={"#30D158"}
                         />
                     </View>
-                    <Separador></Separador>
+                    <Separator></Separator>
 
                     {/* Opción de Face ID */}
                     <View style={styles.fila}>
@@ -350,4 +349,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default Ajustes;
+export default Settings;

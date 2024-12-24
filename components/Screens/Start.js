@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     StyleSheet,
     Text,
@@ -7,24 +7,24 @@ import {
     TouchableOpacity,
     Image,
 } from "react-native";
-import { useTheme } from "../Contexts/ThemeContext"; 
-import { useFavorites } from "../Contexts/FavoritesContext"; // Importar el contexto de favoritos// Importar la lista de frases
-import AsyncStorage from '@react-native-async-storage/async-storage'; // Si es necesario para guardar las favoritas
+import { useTheme } from "../Contexts/ThemeContext";
+import { useFavorites } from "../Contexts/FavoritesContext";
 import { EmojiRow } from "../Elements/EmojiRow";
-import { useEmotions } from "../Contexts/EmotionsContext"; // Importa el contexto de emociones
+import { useEmotions } from "../Contexts/EmotionsContext";
 import dayjs from "dayjs";
+
 
 // Wallpaper
 const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
 const backGroundBlack = require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
 
 // ICONOS
-const iconNotas = require("../../assets/Imag/Iconos/Notas.png");
-const iconAjustes = require("../../assets/Imag/Iconos/Ajustes.png");
+const iconNotes = require("../../assets/Imag/Iconos/Notes.png");
+const iconSettings = require("../../assets/Imag/Iconos/Settings.png");
 
-const iconLista = require("../../assets/Imag/Iconos/Lista.png");
-const iconAgenda = require("../../assets/Imag/Iconos/Agenda.png");
-const iconCalendario = require("../../assets/Imag/Iconos/Calendario.png");
+const iconList = require("../../assets/Imag/Iconos/List.png");
+const iconDaily = require("../../assets/Imag/Iconos/Daily.png");
+const iconCalendar = require("../../assets/Imag/Iconos/Calendar.png");
 
 // ICONOS DE TEXTO
 const mind = require("../../assets/IconosTexto/mind.png");
@@ -32,31 +32,40 @@ const sun = require("../../assets/IconosTexto/sun.png");
 
 const Start = (props) => {
     const { isDarkMode, toggleTheme } = useTheme();
-    const { favorites } = useFavorites(); // Obtener las frases favoritas del contexto
-    const [favoritePhrase, setFavoritePhrase] = useState(null); // Estado para la frase favorita
+    const { favorites } = useFavorites();
+    const [favoritePhrase, setFavoritePhrase] = useState(null); 
     const API_BASE_URL = "http://localhost:8080/api/phrases";
+    const favoritesRef = useRef([]);
 
     useEffect(() => {
         const fetchFavoritePhrases = async () => {
             try {
-                if (favorites.length > 0) {
-                    const response = await fetch(`${API_BASE_URL}/favorites`);
-                    const data = await response.json();
-    
-                    if (data.length > 0) {
-                        // Elegir una frase al azar o la primera de la lista
-                        const randomPhrase = data[Math.floor(Math.random() * data.length)].phrase;
-                        setFavoritePhrase(randomPhrase);
-                    }
+                const response = await fetch(API_BASE_URL);
+                const allPhrases = await response.json();
+
+                const favoritePhrases = allPhrases.filter((phrase) =>
+                    favorites.includes(phrase.id)
+                );
+
+
+                if (favoritePhrases.length > 0) {
+                    const randomPhrase = favoritePhrases[Math.floor(Math.random() * favoritePhrases.length)].phrase;
+                    setFavoritePhrase(randomPhrase);
+                } else {
+
+                    setFavoritePhrase("No puedes controlar el viento, pero sí puedes ajustar las velas.");
                 }
             } catch (error) {
                 console.error("Error fetching favorite phrases:", error);
+                setFavoritePhrase("No puedes controlar el viento, pero sí puedes ajustar las velas.");
             }
         };
-    
+
         fetchFavoritePhrases();
-    }, [favorites]);
-    
+    }, [favorites]);  
+
+
+
 
     return (
         <View style={styles.container}>
@@ -65,16 +74,16 @@ const Start = (props) => {
                 style={styles.backGround}
             >
                 <TouchableOpacity
-                    style={styles.iconNotas}
+                    style={styles.iconNotes}
                     onPress={() => alert("Botón notas presionado!")}
                 >
-                    <Image source={iconNotas} style={styles.iconStyle} />
+                    <Image source={iconNotes} style={styles.iconStyle} />
                 </TouchableOpacity>
                 <TouchableOpacity
-                    style={styles.iconAjustes}
-                    onPress={() => props.navigation.navigate("Ajustes")}
+                    style={styles.iconSettings}
+                    onPress={() => props.navigation.navigate("Settings")}
                 >
-                    <Image source={iconAjustes} style={styles.iconStyle} />
+                    <Image source={iconSettings} style={styles.iconStyle} />
                 </TouchableOpacity>
 
                 <View
@@ -90,7 +99,7 @@ const Start = (props) => {
                 >
                     <TouchableOpacity
                         onPress={() =>
-                            props.navigation.navigate("CalendarEstados")
+                            props.navigation.navigate("CalendarEmotions")
                         }
                     >
                         <View style={styles.lineaTitulo}>
@@ -159,7 +168,7 @@ const Start = (props) => {
                         },
                     ]}
                     onPress={() =>
-                        props.navigation.navigate("ListFrases")
+                        props.navigation.navigate("Phrases")
                     }
                 >
                     <View style={styles.lineaTitulo}>
@@ -211,28 +220,28 @@ const Start = (props) => {
                         ]}
                     >
                         {favoritePhrase
-                            ? favoritePhrase // Mostrar la frase favorita
-                            : "No puedes controlar el viento, pero sí puedes ajustar las velas." // Frase por defecto si no hay favoritos
+                            ? favoritePhrase 
+                            : "No puedes controlar el viento, pero sí puedes ajustar las velas."
                         }
                     </Text>
                 </TouchableOpacity>
 
                 <View id="dock" style={styles.dock}>
                     <TouchableOpacity
-                        onPress={() => alert("Botón lista presionado!")}
+                        onPress={() => props.navigation.navigate("RemindersList")}
                     >
-                        <Image source={iconLista} style={styles.iconStyle} />
+                        <Image source={iconList} style={styles.iconStyle} />
                     </TouchableOpacity>
                     <TouchableOpacity
-                        onPress={() => props.navigation.navigate("ListAgenda")}
+                        onPress={() => props.navigation.navigate("DailyEntries")}
                     >
-                        <Image source={iconAgenda} style={styles.iconStyle} />
+                        <Image source={iconDaily} style={styles.iconStyle} />
                     </TouchableOpacity>
                     <TouchableOpacity
                         onPress={() => alert("Botón calendario presionado!")}
                     >
                         <Image
-                            source={iconCalendario}
+                            source={iconCalendar}
                             style={styles.iconStyle}
                         />
                     </TouchableOpacity>
@@ -252,13 +261,13 @@ const styles = StyleSheet.create({
         resizeMode: "cover",
         justifyContent: "center",
     },
-    iconNotas: {
+    iconNotes: {
         position: "absolute",
         top: 50,
         left: 10,
         padding: 10,
     },
-    iconAjustes: {
+    iconSettings: {
         position: "absolute",
         top: 50,
         right: 0,

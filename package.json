@@ -24,6 +24,7 @@
     "react": "18.2.0",
     "react-ios-switch": "^0.1.19",
     "react-native": "0.74.5",
+    "react-native-calendar-events": "^2.2.0",
     "react-native-calendars": "^1.1307.0",
     "react-native-local-authentication": "^0.1.1",
     "react-native-paper": "^5.12.5",

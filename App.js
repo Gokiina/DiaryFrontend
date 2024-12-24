@@ -4,20 +4,23 @@ import React from "react";
 
 // PANTALLAS
 import Start from "./components/Screens/Start";
-import Ajustes from "./components/Screens/Ajustes";
-import CalendarEstados from "./components/Screens/CalendarEstados";
-import ListFrases from "./components/Screens/ListFrases";
-import ListFrasesFav from "./components/Screens/ListFrasesFav";
-import ListAgenda from "./components/Screens/ListAgenda";
-import PaginaDiarioNueva from "./components/Screens/PaginasDiario/PaginaDiarioNueva";
-import PaginaDiarioDetalles from "./components/Screens/PaginasDiario/PaginaDiarioDetalles";
+import Settings from "./components/Screens/Settings";
+import CalendarEmotions from "./components/Screens/CalendarEmotions";
+import Phrases from "./components/Screens/Phrases/Phrases";
+import PhrasesFavorite from "./components/Screens/Phrases/PhrasesFavorite";
+import DailyEntries from "./components/Screens/DailyPages/DailyEntries";
+import NewDailyPage from "./components/Screens/DailyPages/NewDailyPage";
+import DetailsDailyPage from "./components/Screens/DailyPages/DetailsDailyPage";
+import RemindersForm from "./components/Screens/Reminders/RemindersForm";
+import RemindersList from "./components/Screens/Reminders/RemindersList";
 
 // CONTEXT
 import { ThemeProvider } from "./components/Contexts/ThemeContext";
-import { SettingsProvider } from "./components/Contexts/SettingsContext"; // Importar el contexto
+import { SettingsProvider } from "./components/Contexts/SettingsContext"; 
 import { FavoritesProvider } from "./components/Contexts/FavoritesContext";
 import { EmotionsProvider } from "./components/Contexts/EmotionsContext";
-import { DiarioProvider } from "./components/Contexts/DiarioContext";
+import { DailyProvider } from "./components/Contexts/DailyContext";
+import { RemindersProvider } from "./components/Contexts/RemindersContext";
 
 const Stack = createStackNavigator();
 
@@ -26,20 +29,24 @@ const App = () => (
         <SettingsProvider>
         <FavoritesProvider>
         <EmotionsProvider> 
-        <DiarioProvider> 
+        <DailyProvider> 
+        <RemindersProvider> 
             <NavigationContainer>
                 <Stack.Navigator screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="Start" component={Start} />
-                    <Stack.Screen name="Ajustes" component={Ajustes} />
-                    <Stack.Screen name="CalendarEstados" component={CalendarEstados} />
-                    <Stack.Screen name="ListFrases" component={ListFrases} />
-                    <Stack.Screen name="ListFrasesFav" component={ListFrasesFav} />
-                    <Stack.Screen name="ListAgenda" component={ListAgenda} />
-                    <Stack.Screen name="PaginaDiarioNueva" component={PaginaDiarioNueva} />
-                    <Stack.Screen name="PaginaDiarioDetalles" component={PaginaDiarioDetalles} />
+                    <Stack.Screen name="Settings" component={Settings} />
+                    <Stack.Screen name="CalendarEmotions" component={CalendarEmotions} />
+                    <Stack.Screen name="Phrases" component={Phrases} />
+                    <Stack.Screen name="PhrasesFavorite" component={PhrasesFavorite} />
+                    <Stack.Screen name="DailyEntries" component={DailyEntries} />
+                    <Stack.Screen name="NewDailyPage" component={NewDailyPage} />
+                    <Stack.Screen name="DetailsDailyPage" component={DetailsDailyPage} />
+                    <Stack.Screen name="RemindersList" component={RemindersList} />
+                    <Stack.Screen name="RemindersForm" component={RemindersForm} />
                 </Stack.Navigator>
             </NavigationContainer>
-        </DiarioProvider>
+        </RemindersProvider>
+        </DailyProvider>
         </EmotionsProvider> 
         </FavoritesProvider>
         </SettingsProvider> 

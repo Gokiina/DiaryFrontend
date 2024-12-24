@@ -1,28 +1,27 @@
 import React, { Component } from 'react';
 
-// Creamos el contexto
+
 export const EmotionsContext = React.createContext();
 
 export class EmotionsProvider extends Component {
     state = {
-        emotions: {}, // Aquí almacenamos las emociones por fecha
+        emotions: {}, 
     };
 
-    // Función para registrar una emoción con una fecha
+
     registerEmotion = (date, emoji) => {
         this.setState(prevState => ({
             emotions: {
                 ...prevState.emotions,
-                [date]: emoji, // Asignamos un emoji a una fecha
+                [date]: emoji, 
             },
         }));
     };
 
-    // Función para borrar una emoción de una fecha específica (opcional)
     removeEmotion = (date) => {
         this.setState(prevState => {
             const emotions = { ...prevState.emotions };
-            delete emotions[date]; // Eliminamos la emoción del estado
+            delete emotions[date];
             return { emotions };
         });
     };

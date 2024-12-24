@@ -12,20 +12,23 @@ import {
     TouchableWithoutFeedback,
     Keyboard,
 } from "react-native";
-import { DiarioContext } from "../../Contexts/DiarioContext"; // Contexto para almacenar las entradas
-import { useTheme } from "../../Contexts/ThemeContext"; // Contexto de tema
+import { DailyContext } from "../../Contexts/DailyContext";
+import { useTheme } from "../../Contexts/ThemeContext";
 
 // ICONOS
-const backGround = require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
+const backGround = require("../../../assets/Imag/Wallpaper/Wallpaper.jpg");
 const backGroundBlack = require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
 //const linea = require("../../../assets/Imag/Wallpaper/lineas.png");
-const circleFill = require("../../../assets/IconosTexto/circleFill.png"); // Botón de guardar similar al botón de "agregar"
+const circleFill = require("../../../assets/IconosTexto/circleFill.png");
 
-const PaginaDiarioNueva = (props) => {
-    const { isDarkMode } = useTheme(); // Usamos el contexto para manejar el tema
-    const [text, setText] = useState(""); // Estado para almacenar el texto de la entrada
-    const { agregarEntrada } = useContext(DiarioContext); // Función para agregar la entrada en el contexto
-    const [fecha] = useState(new Date()); // Estado para la fecha y hora actual
+const NewDailyPage = (props) => {
+    const { isDarkMode } = useTheme();
+    const [text, setText] = useState("");
+    const { agregarEntrada } = useContext(DailyContext);
+    const [fecha] = useState(new Date());
+
+    // Resto del código del componente...
+
     const formattedDate = `${fecha.getDate().toString().padStart(2, "0")}.${(
         fecha.getMonth() + 1
     )
@@ -36,26 +39,44 @@ const PaginaDiarioNueva = (props) => {
         .toString()
         .padStart(2, "0")}:${fecha.getMinutes().toString().padStart(2, "0")}`;
 
-    // Función para guardar la entrada
-    const saveEntry = () => {
+
+    const saveEntry = async () => {
         if (text.trim() === "") {
-            // Si el texto está vacío, simplemente regresa sin guardar
             props.navigation.goBack();
             return;
         }
 
-        const nuevaEntrada = {
-            id: Date.now(),
-            date: formattedDate,
-            time: formattedTime,
-            text: text,
+        const nuevaPagina = {
+            date: new Date().toISOString(),
+            content: text,
         };
+        console.log("Datos enviados al servidor:", nuevaPagina);
+        try {
+            const response = await fetch("http://localhost:8080/api/diary", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(nuevaPagina),
+            });
 
-        agregarEntrada(nuevaEntrada); // Agregar entrada al contexto
-
-        // Volver a la lista de entradas
-        props.navigation.navigate("ListAgenda");
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Página de diario guardada con éxito:", data);
+                agregarEntrada(data);
+                props.navigation.goBack();
+            } else {
+                console.error("Error al guardar la página:", response.statusText);
+                alert("Hubo un problema al guardar la página. Inténtalo de nuevo.");
+            }
+        } catch (error) {
+            console.error("Error al conectar con el servidor:", error);
+            alert("Error de conexión. Verifica que el servidor esté en funcionamiento.");
+        }
     };
+
+
+
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -69,22 +90,29 @@ const PaginaDiarioNueva = (props) => {
                 >
                     {/* Fecha de la entrada */}
                     <Text style={[
-                            styles.fecha,
-                            { color: isDarkMode ? "white" : "black" }, // Ajuste del color del icono
-                        ]}>{formattedDate}</Text>
+                        styles.fecha,
+                        { color: isDarkMode ? "white" : "black" },
+                    ]}>{formattedDate}</Text>
 
                     {/* Campo de texto */}
                     <TextInput
                         style={[
                             styles.textInput,
-                            { backgroundColor: isDarkMode ? "#2C2C2E" : "white", color: isDarkMode ? "white" : "black" }, // Ajuste del color del icono
+                            {
+                                backgroundColor: isDarkMode ? "#2C2C2E" : "white",
+                                color: isDarkMode ? "white" : "black",
+                            },
                         ]}
                         multiline={true}
                         placeholder="Escribe tu entrada aquí..."
                         placeholderTextColor="#888"
-                        onChangeText={(text) => setText(text)}
+                        onChangeText={(text) => {
+                            console.log("Texto actualizado:", text);
+                            setText(text);
+                        }}
                         value={text}
                     />
+
 
                     {/* Botón Circle Fill para guardar */}
                     <TouchableOpacity style={styles.iconoAdd} onPress={saveEntry}>
@@ -92,7 +120,7 @@ const PaginaDiarioNueva = (props) => {
                             source={circleFill}
                             style={[
                                 styles.iconoAdd,
-                                { tintColor: isDarkMode ? "black" : "white" }, // Ajuste del color del icono
+                                { tintColor: isDarkMode ? "black" : "white" },
                             ]}
                         />
                     </TouchableOpacity>
@@ -114,14 +142,14 @@ const styles = StyleSheet.create({
         width: "93%",
         flex: 1,
         fontSize: 18,
-        //backgroundColor: "transparent", // Hacer transparente el fondo para ver las líneas
-        
-        borderRadius: 10, // Sin bordes redondeados
+        //backgroundColor: "transparent", 
+
+        borderRadius: 10,
         color: "#333",
-        textAlignVertical: "top", // Alinea el texto al principio al escribir
+        textAlignVertical: "top",
         marginTop: 5,
-        paddingHorizontal: 10, // Reduce el padding horizontal
-        lineHeight: 24, // Ajusta la altura de línea para que coincida con las líneas de fondo
+        padding: 20,
+        lineHeight: 24,
     },
     fecha: {
         fontSize: 18,
@@ -133,16 +161,16 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
     iconoAdd: {
-        width: 25, // Ajusta el tamaño del icono para que sea similar
+        width: 25,
         height: 25,
         position: "absolute",
-        top: 30, // Ubica el botón en la parte superior derecha
-        right: 20, // Margen hacia la derecha
+        top: 35,
+        right: 20,
         shadowOpacity: 0.5,
         shadowRadius: 10,
         borderRadius: 20,
-        elevation: 50, // Sombra en Android
+        elevation: 50,
     },
 });
 
-export default PaginaDiarioNueva;
+export default NewDailyPage;
