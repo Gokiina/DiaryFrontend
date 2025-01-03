@@ -1,12 +1,8 @@
-
 import React, { createContext, useState } from "react";
-
 
 export const SettingsContext = createContext();
 
-
 export const SettingsProvider = ({ children }) => {
-
     const [faceIdEnabled, setFaceIdEnabled] = useState(false);
     const [record, setRecord] = useState(false);
     const [time, setTime] = useState(new Date());
@@ -18,7 +14,8 @@ export const SettingsProvider = ({ children }) => {
                 setFaceIdEnabled,
                 record,
                 setRecord,
-                time, setTime
+                time,
+                setTime,
             }}
         >
             {children}

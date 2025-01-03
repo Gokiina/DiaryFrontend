@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     StyleSheet,
     Text,
@@ -11,7 +11,6 @@ import { useTheme } from "../Contexts/ThemeContext";
 import { useFavorites } from "../Contexts/FavoritesContext";
 import { useEmotions } from "../Contexts/EmotionsContext";
 import { EmojiRow } from "../Elements/EmojiRow";
-
 import dayjs from "dayjs";
 import { Linking } from "react-native";
 
@@ -22,7 +21,6 @@ const backGroundBlack = require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg
 // ICONOS
 const iconNotes = require("../../assets/Imag/Iconos/Notes.png");
 const iconSettings = require("../../assets/Imag/Iconos/Settings.png");
-
 const iconList = require("../../assets/Imag/Iconos/List.png");
 const iconDaily = require("../../assets/Imag/Iconos/Daily.png");
 const iconCalendar = require("../../assets/Imag/Iconos/Calendar.png");
@@ -32,40 +30,38 @@ const mind = require("../../assets/IconosTexto/mind.png");
 const sun = require("../../assets/IconosTexto/sun.png");
 
 const Start = (props) => {
-    const { isDarkMode, toggleTheme } = useTheme();
+    const { isDarkMode } = useTheme();
     const { favorites } = useFavorites();
     const [favoritePhrase, setFavoritePhrase] = useState(null);
-    const API_BASE_URL_PHRASES = "http://localhost:8080/api/phrases";
-    const API_BASE_URL_CALENDAR = "http://localhost:8080/api/emotions";
-    const favoritesRef = useRef([]);
+    const URL_PHRASES = "http://localhost:8080/api/phrases";
     const { emotions, fetchEmotions, saveEmotion } = useEmotions();
     const [selectedEmoji, setSelectedEmoji] = useState(null);
-
     const today = dayjs().format("YYYY-MM-DD");
+
     const openCalendar = () => {
         Linking.openURL("calshow://");
     };
 
     useEffect(() => {
         const loadEmotions = async () => {
-            await fetchEmotions(); // Obtener emociones del backend
+            await fetchEmotions();
             if (emotions[today]) {
-                setSelectedEmoji(emotions[today]); // Establecer emoción del día actual
+                setSelectedEmoji(emotions[today]);
             }
         };
 
         loadEmotions();
-    }, [emotions, today]); // Solo depende de la fecha actual
+    }, [emotions, today]);
 
     const handleEmojiSelect = async (emoji) => {
-        await saveEmotion(today, emoji); // Guardar en el backend
-        setSelectedEmoji(emoji); // Actualizar emoción seleccionada
+        await saveEmotion(today, emoji);
+        setSelectedEmoji(emoji);
     };
 
     useEffect(() => {
         const fetchFavoritePhrases = async () => {
             try {
-                const response = await fetch(API_BASE_URL_PHRASES);
+                const response = await fetch(URL_PHRASES);
                 const allPhrases = await response.json();
 
                 const favoritePhrases = allPhrases.filter((phrase) =>
@@ -182,8 +178,8 @@ const Start = (props) => {
                     </TouchableOpacity>
 
                     <EmojiRow
-                        selected={selectedEmoji} // Pasamos el emoji seleccionado
-                        onSelectEmoji={handleEmojiSelect} // Maneja la selección del emoji
+                        selected={selectedEmoji}
+                        onSelectEmoji={handleEmojiSelect}
                     />
                 </View>
 

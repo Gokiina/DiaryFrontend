@@ -50,12 +50,15 @@ const DetailsDailyPage = (props) => {
                         source={isDarkMode ? backGroundBlack : backGround}
                         style={styles.backGround}
                     >
-                        {/* Botón de volver */}
                         <View style={styles.lineaVolver}>
-                            <TouchableOpacity onPress={() => props.navigation.goBack()}>
+                            <TouchableOpacity
+                                onPress={() => props.navigation.goBack()}
+                            >
                                 <Text
                                     style={{
-                                        color: isDarkMode ? "#FFFFFF" : "#007AFF",
+                                        color: isDarkMode
+                                            ? "#FFFFFF"
+                                            : "#007AFF",
                                         fontSize: 18,
                                     }}
                                 >
@@ -89,7 +92,9 @@ const DetailsDailyPage = (props) => {
                                     style={[
                                         styles.iconoEdit,
                                         {
-                                            tintColor: isDarkMode ? "white" : "black",
+                                            tintColor: isDarkMode
+                                                ? "white"
+                                                : "black",
                                             width: editMode ? 25 : 30,
                                             height: 30,
                                         },
@@ -98,7 +103,6 @@ const DetailsDailyPage = (props) => {
                             </TouchableOpacity>
                         </View>
 
-                        {/* Fecha de la entrada */}
                         <Text
                             style={[
                                 styles.fecha,
@@ -106,11 +110,14 @@ const DetailsDailyPage = (props) => {
                             ]}
                         >
                             {entrada.date
-                                ? `${entrada.date.split("T")[0].split("-").reverse().join(".")}`
+                                ? `${entrada.date
+                                      .split("T")[0]
+                                      .split("-")
+                                      .reverse()
+                                      .join(".")}`
                                 : "Sin fecha"}
                         </Text>
 
-                        {/* Tarjeta de texto */}
                         <View
                             style={[
                                 styles.card,
@@ -126,7 +133,11 @@ const DetailsDailyPage = (props) => {
                                 <TextInput
                                     style={[
                                         styles.textInput,
-                                        { color: isDarkMode ? "white" : "black" },
+                                        {
+                                            color: isDarkMode
+                                                ? "white"
+                                                : "black",
+                                        },
                                     ]}
                                     multiline
                                     value={text}
@@ -136,7 +147,11 @@ const DetailsDailyPage = (props) => {
                                 <Text
                                     style={[
                                         styles.texto,
-                                        { color: isDarkMode ? "white" : "black" },
+                                        {
+                                            color: isDarkMode
+                                                ? "white"
+                                                : "black",
+                                        },
                                     ]}
                                 >
                                     {text}
@@ -164,7 +179,6 @@ const styles = StyleSheet.create({
         width: "93%",
         flex: 1,
         fontSize: 18,
-        //backgroundColor: "transparent", 
 
         borderRadius: 10,
         color: "#333",
@@ -180,7 +194,7 @@ const styles = StyleSheet.create({
         color: "#666",
         textAlign: "center",
         marginVertical: 10,
-        fontWeight: "bold",// Asegura que esté por encima del contenido
+        fontWeight: "bold",
     },
     texto: {
         fontSize: 16,

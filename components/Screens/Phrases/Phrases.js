@@ -11,6 +11,7 @@ import {
 import { useTheme } from "../../Contexts/ThemeContext";
 import { useFavorites } from "../../Contexts/FavoritesContext";
 import { useFocusEffect } from "@react-navigation/native";
+
 // Wallpaper
 const backGround = require("../../../assets/Imag/Wallpaper/Wallpaper.jpg");
 const backGroundBlack = require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
@@ -22,9 +23,8 @@ const star_fill = require("../../../assets/IconosTexto/star_fill.png");
 const star = require("../../../assets/IconosTexto/star.png");
 
 const Phrases = (props) => {
-    const { isDarkMode, toggleTheme } = useTheme();
-    const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
-    const { favorites, toggleFavorite, removeFavorite } = useFavorites();
+    const { isDarkMode } = useTheme();
+    const { favorites, toggleFavorite } = useFavorites();
     const [phrases, setPhrases] = useState([]);
     const API_BASE_URL = "http://localhost:8080/api/phrases";
 
@@ -37,7 +37,10 @@ const Phrases = (props) => {
             const data = await response.json();
             return data;
         } catch (error) {
-            console.error("Error al cargar todas las frases desde la base de datos:", error);
+            console.error(
+                "Error al cargar todas las frases desde la base de datos:",
+                error
+            );
             return [];
         }
     };
@@ -60,53 +63,27 @@ const Phrases = (props) => {
         }, [])
     );
 
+    const handleToggleFavorite = async (id) => {
+        if (removingFavorites.includes(id)) return;
 
-    const handleToggleFavorite = async (id, currentStatus) => {
-        const method = currentStatus ? "DELETE" : "POST"; // Usar el método apropiado
+        setRemovingFavorites((prev) => [...prev, id]);
+
         try {
-            const response = await fetch(`http://localhost:8080/api/phrases/${id}/favorite`, {
-                method: method,
-            });
-    
-            if (!response.ok) {
-                throw new Error("Error al actualizar el estado de favorito");
-            }
-    
-            const updatedPhrase = await response.json();
-    
-            // Actualizar el estado local con la nueva información
-            setPhrases((prev) =>
-                prev.map((phrase) =>
-                    phrase._id === id ? { ...phrase, isFavorite: updatedPhrase.isFavorite } : phrase
-                )
-            );
+            const url = `${API_BASE_URL}/${id}/favorite`;
+            await fetch(url, { method: "POST" });
+            toggleFavorite(id);
         } catch (error) {
-            console.error("Error al cambiar el estado de favorito:", error);
+            console.error("Error al cambiar el estado del favorito:", error);
         }
+
+        setTimeout(() => {
+            setRemovingFavorites((prev) => prev.filter((item) => item !== id));
+        }, 500);
     };
-    
-    useEffect(() => {
-        const fetchFavoritePhrases = async () => {
-            try {
-                const response = await fetch("http://localhost:8080/api/phrases/favorites");
-                if (!response.ok) {
-                    throw new Error("Error al obtener frases favoritas");
-                }
-                const data = await response.json();
-                setPhrases(data);
-            } catch (error) {
-                console.error("Error al cargar frases favoritas:", error);
-            }
-        };
-    
-        fetchFavoritePhrases();
-    }, []);
-    
 
     const isFavorite = (id) => {
         return favorites.includes(id);
     };
-
 
     return (
         <View style={styles.container}>
@@ -202,16 +179,25 @@ const Phrases = (props) => {
                                 >
                                     {item.phrase}
                                 </Text>
-                                <TouchableOpacity onPress={() => toggleFavorite(item.id)}>
-                                <Image
-                                    source={isFavorite(item.id) ? star_fill : star}
-                                    style={[
-                                        styles.staroflife,
-                                        { tintColor: isDarkMode ? "rgb(78, 88, 100)" : "rgb(158, 158, 158)" },
-                                    ]}
-                                />
-                            </TouchableOpacity>
-
+                                <TouchableOpacity
+                                    onPress={() => toggleFavorite(item.id)}
+                                >
+                                    <Image
+                                        source={
+                                            isFavorite(item.id)
+                                                ? star_fill
+                                                : star
+                                        }
+                                        style={[
+                                            styles.staroflife,
+                                            {
+                                                tintColor: isDarkMode
+                                                    ? "rgb(78, 88, 100)"
+                                                    : "rgb(158, 158, 158)",
+                                            },
+                                        ]}
+                                    />
+                                </TouchableOpacity>
                             </View>
                         )}
                     />
@@ -259,7 +245,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowOffset: { width: 0, height: 4 },
         shadowRadius: 4,
-        elevation: 5, 
+        elevation: 5,
     },
     fraseContainer: {
         flexDirection: "row",
@@ -274,12 +260,12 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowOffset: { width: 0, height: 4 },
         shadowRadius: 4,
-        elevation: 5, 
+        elevation: 5,
     },
     fraseText: {
         fontSize: 14,
         color: "#333",
-        flex: 1, 
+        flex: 1,
     },
     staroflife: {
         width: 20,

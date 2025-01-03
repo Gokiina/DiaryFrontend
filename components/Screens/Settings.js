@@ -14,7 +14,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import * as LocalAuthentication from "expo-local-authentication";
 
 //  CONTEXTS
-import { useTheme } from "../Contexts/ThemeContext"; 
+import { useTheme } from "../Contexts/ThemeContext";
 import { SettingsContext } from "../Contexts/SettingsContext";
 
 import Separator from "../Elements/Separator";
@@ -27,11 +27,10 @@ const backGroundBlack = require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg
 const flecha = require("../../assets/IconosTexto/flecha.png");
 
 const Settings = (props) => {
-    const { isDarkMode, toggleTheme } = useTheme();
+    const { isDarkMode } = useTheme();
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
     const [showPicker, setShowPicker] = useState(false);
 
-    // Acceder al contexto de settings
     const {
         faceIdEnabled,
         setFaceIdEnabled,
@@ -77,20 +76,19 @@ const Settings = (props) => {
         });
 
         if (result.success) {
-            setFaceIdEnabled(true); // Activa Face ID si la autenticación es exitosa
+            setFaceIdEnabled(true);
             alert("Autenticación con Face ID exitosa.");
         } else {
-            setFaceIdEnabled(false); // Desactiva Face ID si falla
+            setFaceIdEnabled(false);
             alert("Error, autenticación fallida.");
         }
     };
 
-    // Función para manejar el cambio en el switch de Face ID
     const FaceIDSwitch = (value) => {
         if (value) {
             authenticateWithFaceID();
         } else {
-            setFaceIdEnabled(false); // Desactivar Face ID
+            setFaceIdEnabled(false);
         }
     };
 
@@ -104,13 +102,12 @@ const Settings = (props) => {
         setTime(currentTime);
     };
 
-
     const formatTime = (time) => {
         let hours = time.getHours();
         const minutes = time.getMinutes();
         const suffix = hours >= 12 ? "PM" : "AM";
 
-        hours = hours % 12 || 12; 
+        hours = hours % 12 || 12;
         const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
 
         return `${hours}:${formattedMinutes} ${suffix}`;
@@ -142,16 +139,12 @@ const Settings = (props) => {
                                             : "#007AFF",
                                     },
                                 ]}
-                                
-                                
                             />
-                            
                             Volver
                         </Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Título Settings */}
                 <Title
                     style={[
                         styles.titulo,
@@ -173,7 +166,6 @@ const Settings = (props) => {
                         },
                     ]}
                 >
-                    {/* Opción de Recordatorio */}
                     <View style={styles.fila}>
                         <Text
                             style={{
@@ -183,9 +175,8 @@ const Settings = (props) => {
                         >
                             Recordatorio
                         </Text>
-                        
+
                         <View style={styles.recordatorioContainer}>
-                            
                             <TouchableOpacity
                                 onPress={() => setShowPicker(true)}
                                 style={styles.timeButton}
@@ -195,7 +186,6 @@ const Settings = (props) => {
                                 </Text>
                             </TouchableOpacity>
 
-                            
                             <Switch
                                 value={record}
                                 onValueChange={(value) => {
@@ -235,13 +225,13 @@ const Settings = (props) => {
                     </View>
                     <Separator></Separator>
 
-                    {/* Opción de Modo Nocturno */}
                     <View style={styles.fila}>
                         <Text
                             style={{
                                 color: isDarkMode ? "#FFFFFF" : "#333",
                                 fontSize: 18,
-                            }}>
+                            }}
+                        >
                             Modo nocturno
                         </Text>
                         <Switch
@@ -252,13 +242,13 @@ const Settings = (props) => {
                     </View>
                     <Separator></Separator>
 
-                    {/* Opción de Face ID */}
                     <View style={styles.fila}>
                         <Text
                             style={{
                                 color: isDarkMode ? "#FFFFFF" : "#333",
                                 fontSize: 18,
-                            }}>
+                            }}
+                        >
                             Face ID
                         </Text>
                         <Switch

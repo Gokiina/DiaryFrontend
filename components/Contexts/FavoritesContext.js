@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const FavoritesContext = createContext();
 
@@ -13,25 +13,27 @@ export const FavoritesProvider = ({ children }) => {
     useEffect(() => {
         const loadFavorites = async () => {
             try {
-                const storedFavorites = await AsyncStorage.getItem('favorites');
+                const storedFavorites = await AsyncStorage.getItem("favorites");
                 if (storedFavorites) {
                     setFavorites(JSON.parse(storedFavorites));
                 }
             } catch (error) {
-                console.error('Error al cargar los favoritos:', error);
+                console.error("Error al cargar los favoritos:", error);
             }
         };
 
         loadFavorites();
     }, []);
 
-
     useEffect(() => {
         const saveFavorites = async () => {
             try {
-                await AsyncStorage.setItem('favorites', JSON.stringify(favorites));
+                await AsyncStorage.setItem(
+                    "favorites",
+                    JSON.stringify(favorites)
+                );
             } catch (error) {
-                console.error('Error al guardar los favoritos:', error);
+                console.error("Error al guardar los favoritos:", error);
             }
         };
 
@@ -40,22 +42,15 @@ export const FavoritesProvider = ({ children }) => {
 
     const toggleFavorite = (id) => {
         setFavorites((prevFavorites) => {
-            if (prevFavorites.includes(id)) {
-                return prevFavorites.filter((favId) => favId !== id); 
-            } else {
-                return [...prevFavorites, id]; 
-            }
-        });
-    };
-
-    const removeFavorite = (id) => {
-        setFavorites((prevFavorites) => {
-            return prevFavorites.filter((favId) => favId !== id); 
+            const updatedFavorites = prevFavorites.includes(id)
+                ? prevFavorites.filter((favId) => favId !== id)
+                : [...prevFavorites, id];
+            return updatedFavorites;
         });
     };
 
     return (
-        <FavoritesContext.Provider value={{ favorites, toggleFavorite, removeFavorite }}>
+        <FavoritesContext.Provider value={{ favorites, toggleFavorite }}>
             {children}
         </FavoritesContext.Provider>
     );

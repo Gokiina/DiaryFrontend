@@ -20,87 +20,82 @@ const star_fill = require("../../../assets/IconosTexto/star_fill.png");
 const star_slash = require("../../../assets/IconosTexto/star_slash.png");
 
 const PhrasesFavorite = ({ navigation }) => {
-    const { isDarkMode, toggleTheme } = useTheme();
-    const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
+    const { isDarkMode } = useTheme();
     const [phrases, setPhrases] = useState([]);
     const API_BASE_URL = "http://localhost:8080/api/phrases";
-    const { favorites, toggleFavorite, removeFavorite } = useFavorites();
+    const { favorites, toggleFavorite } = useFavorites();
     const [removingFavorites, setRemovingFavorites] = useState([]);
-
-
-
-    const favoritesRef = useRef(favorites);
 
     useEffect(() => {
         const fetchFavoritePhrases = async () => {
             try {
                 const response = await fetch(API_BASE_URL);
                 const allPhrases = await response.json();
-                const favoritePhrases = allPhrases.filter((phrase) => favorites.includes(phrase.id));
+                const favoritePhrases = allPhrases.filter((phrase) =>
+                    favorites.includes(phrase.id)
+                );
                 setPhrases(favoritePhrases);
             } catch (error) {
                 console.error("Error fetching favorite phrases:", error);
             }
         };
-    
+
         fetchFavoritePhrases();
-    }, []); 
-    
-    
+    }, []);
 
     const handleToggleFavorite = (id) => {
         if (removingFavorites.includes(id)) return;
-    
+
         setRemovingFavorites((prev) => [...prev, id]);
-    
-        // Optimistamente quita el favorito del estado local antes de enviar la solicitud
-        toggleFavorite(id); 
-    
+
+        toggleFavorite(id);
+
         updateFavoriteStatus(id)
             .catch((error) => {
-                console.error("Error al cambiar el estado del favorito:", error);
-                // Revertir el cambio si falla
+                console.error(
+                    "Error al cambiar el estado del favorito:",
+                    error
+                );
                 toggleFavorite(id);
             })
             .finally(() => {
-                setRemovingFavorites((prev) => prev.filter((item) => item !== id));
+                setRemovingFavorites((prev) =>
+                    prev.filter((item) => item !== id)
+                );
             });
     };
-    
-    
-
-
 
     useFocusEffect(
         useCallback(() => {
             const syncFavorites = () => {
                 setPhrases((prevPhrases) =>
-                    prevPhrases.filter((phrase) => favorites.includes(phrase.id))
+                    prevPhrases.filter((phrase) =>
+                        favorites.includes(phrase.id)
+                    )
                 );
             };
-    
+
             syncFavorites();
-    
+
             return () => {};
         }, [favorites])
     );
-    
-    
+
     const updateFavoriteStatus = useCallback(async (id) => {
         try {
             const response = await fetch(`${API_BASE_URL}/${id}/favorite`, {
-                method: 'POST',
+                method: "POST",
             });
             if (!response.ok) {
-                throw new Error('Error al actualizar el estado de favorito');
+                throw new Error("Error al actualizar el estado de favorito");
             }
         } catch (error) {
-            console.error('Error al actualizar el estado de favorito en la base de datos:', error);
+            console.error(
+                "Error al actualizar el estado de favorito en la base de datos:",
+                error
+            );
         }
     }, []);
-    
-
-
 
     return (
         <View style={styles.container}>
@@ -109,17 +104,48 @@ const PhrasesFavorite = ({ navigation }) => {
                 style={styles.backGround}
             >
                 <View style={styles.lineaVolver}>
-                    <TouchableOpacity onPress={() => navigation.navigate("Phrases")}>
-                        <Text style={{ color: isDarkMode ? "#FFFFFF" : "#007AFF", fontSize: 18 }}>
-                            <Image source={flecha} style={[styles.iconoTexto, { tintColor: isDarkMode ? "white" : "#007AFF" }]} />
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate("Phrases")}
+                    >
+                        <Text
+                            style={{
+                                color: isDarkMode ? "#FFFFFF" : "#007AFF",
+                                fontSize: 18,
+                            }}
+                        >
+                            <Image
+                                source={flecha}
+                                style={[
+                                    styles.iconoTexto,
+                                    {
+                                        tintColor: isDarkMode
+                                            ? "white"
+                                            : "#007AFF",
+                                    },
+                                ]}
+                            />
                             Volver
                         </Text>
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.lineaTitulo}>
-                    <Image source={star_fill} style={[styles.iconoTitulo, { tintColor: isDarkMode ? "white" : "black" }]} />
-                    <Text style={[styles.titulo, { color: isDarkMode ? "#FFFFFF" : "#000" }]}> FAVORITAS</Text>
+                    <Image
+                        source={star_fill}
+                        style={[
+                            styles.iconoTitulo,
+                            { tintColor: isDarkMode ? "white" : "black" },
+                        ]}
+                    />
+                    <Text
+                        style={[
+                            styles.titulo,
+                            { color: isDarkMode ? "#FFFFFF" : "#000" },
+                        ]}
+                    >
+                        {" "}
+                        FAVORITAS
+                    </Text>
                 </View>
 
                 <View style={styles.card}>
@@ -128,24 +154,34 @@ const PhrasesFavorite = ({ navigation }) => {
                         keyExtractor={(item) => item.id.toString()}
                         renderItem={({ item }) => (
                             <View style={styles.fraseContainer}>
-                                <Text style={styles.fraseText}>{item.phrase}</Text>
-                                <TouchableOpacity onPress={() => handleToggleFavorite(item.id)}>
+                                <Text style={styles.fraseText}>
+                                    {item.phrase}
+                                </Text>
+                                <TouchableOpacity
+                                    onPress={() =>
+                                        handleToggleFavorite(item.id)
+                                    }
+                                >
                                     <Image
-                                        source={favorites.includes(item.id) && !removingFavorites.includes(item.id)
-                                            ? star_fill
-                                            : star_slash
+                                        source={
+                                            favorites.includes(item.id) &&
+                                            !removingFavorites.includes(item.id)
+                                                ? star_fill
+                                                : star_slash
                                         }
                                         style={[
                                             styles.staroflife,
-                                            { tintColor: isDarkMode ? "rgb(78, 88, 100)" : "rgb(158, 158, 158)" },
+                                            {
+                                                tintColor: isDarkMode
+                                                    ? "rgb(78, 88, 100)"
+                                                    : "rgb(158, 158, 158)",
+                                            },
                                         ]}
                                     />
                                 </TouchableOpacity>
                             </View>
                         )}
                     />
-
-
                 </View>
             </ImageBackground>
         </View>

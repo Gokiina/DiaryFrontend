@@ -24,7 +24,6 @@ const DailyEntries = (props) => {
     const { isDarkMode } = useTheme();
     const { entradas, eliminarEntrada } = useContext(DailyContext);
 
-
     const renderRightActions = (id) => (
         <TouchableOpacity
             style={styles.botonEliminar}
@@ -36,7 +35,6 @@ const DailyEntries = (props) => {
             </View>
         </TouchableOpacity>
     );
-
 
     const renderItem = ({ item }) => (
         <Swipeable renderRightActions={() => renderRightActions(item.id)}>
@@ -55,7 +53,6 @@ const DailyEntries = (props) => {
                     })
                 }
             >
-                {/* Contenedor para fecha y hora */}
                 <View style={styles.fechaHoraContainer}>
                     <Text
                         style={[
@@ -68,7 +65,11 @@ const DailyEntries = (props) => {
                         ]}
                     >
                         {item.date
-                            ? `${item.date.split('T')[0].split('-').reverse().join('.')}`
+                            ? `${item.date
+                                  .split("T")[0]
+                                  .split("-")
+                                  .reverse()
+                                  .join(".")}`
                             : "Sin fecha"}
                     </Text>
                     <Text
@@ -83,30 +84,34 @@ const DailyEntries = (props) => {
                     >
                         {item.date
                             ? (() => {
-                                const [hours, minutes] = item.date.split('T')[1].slice(0, 5).split(':');
-                                const hours12 = hours % 12 || 12;
-                                const period = hours >= 12 ? "PM" : "AM";
-                                return `${hours12}:${minutes} ${period}`;
-                            })()
+                                  const [hours, minutes] = item.date
+                                      .split("T")[1]
+                                      .slice(0, 5)
+                                      .split(":");
+                                  const hours12 = hours % 12 || 12;
+                                  const period = hours >= 12 ? "PM" : "AM";
+                                  return `${hours12}:${minutes} ${period}`;
+                              })()
                             : "Sin hora"}
                     </Text>
                 </View>
-                {/* Contenido */}
                 <Text
                     style={[
                         styles.texto,
                         {
-                            color: isDarkMode ? "rgba(255, 255, 255, 0.9)" : "#2C2C2E",
+                            color: isDarkMode
+                                ? "rgba(255, 255, 255, 0.9)"
+                                : "#2C2C2E",
                         },
                     ]}
                 >
-                    {item.content.length > 30 ? `${item.content.slice(0, 30)}...` : item.content}
+                    {item.content.length > 30
+                        ? `${item.content.slice(0, 30)}...`
+                        : item.content}
                 </Text>
             </TouchableOpacity>
         </Swipeable>
     );
-    
-    
 
     return (
         <View style={styles.container}>
@@ -114,9 +119,7 @@ const DailyEntries = (props) => {
                 source={isDarkMode ? backGroundBlack : backGround}
                 style={styles.backGround}
             >
-                {/* Botón Volver */}
                 <View style={styles.lineaVolver}>
-
                     <TouchableOpacity
                         onPress={() => props.navigation.navigate("Start")}
                     >
@@ -159,11 +162,8 @@ const DailyEntries = (props) => {
                         DIARIO
                     </Text>
                 </View>
-                {/* Botón para agregar una nueva entrada */}
                 <TouchableOpacity
-                    onPress={() =>
-                        props.navigation.navigate("NewDailyPage")
-                    }
+                    onPress={() => props.navigation.navigate("NewDailyPage")}
                 >
                     <Image
                         source={plusCircle2}
@@ -175,13 +175,14 @@ const DailyEntries = (props) => {
                 </TouchableOpacity>
 
                 <View style={styles.card}>
-                    {/* Lista de entradas */}
                     <FlatList
-    data={[...entradas].sort((a, b) => new Date(b.date) - new Date(a.date))}
-    keyExtractor={(item) => item.id.toString()}
-    renderItem={renderItem}
-    style={[styles.fraseContainer]}
-/>
+                        data={[...entradas].sort(
+                            (a, b) => new Date(b.date) - new Date(a.date)
+                        )}
+                        keyExtractor={(item) => item.id.toString()}
+                        renderItem={renderItem}
+                        style={[styles.fraseContainer]}
+                    />
                 </View>
             </ImageBackground>
         </View>
@@ -243,18 +244,18 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     fechaHoraContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
         marginBottom: 2,
     },
     fecha: {
         fontSize: 16,
         fontWeight: "bold",
     },
-    hora:{
+    hora: {
         textAlign: "right",
-        fontSize: 12
+        fontSize: 12,
     },
     texto: {
         fontSize: 14,
@@ -284,15 +285,15 @@ const styles = StyleSheet.create({
     iconoTexto: {
         width: 18,
         height: 16,
-    }, iconoTrash: {
+    },
+    iconoTrash: {
         width: 13,
         height: 17,
-        tintColor: 'white'
+        tintColor: "white",
     },
     fraseContainer: {
         paddingVertical: 30,
         marginHorizontal: 5,
-        
     },
 });
 

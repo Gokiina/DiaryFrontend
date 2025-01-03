@@ -15,7 +15,7 @@ export const ThemeProvider = ({ children }) => {
             try {
                 const storedTheme = await AsyncStorage.getItem("isDarkMode");
                 if (storedTheme !== null) {
-                    setIsDarkMode(JSON.parse(storedTheme)); 
+                    setIsDarkMode(JSON.parse(storedTheme));
                 }
             } catch (error) {
                 console.error("Error loading theme:", error);
@@ -29,7 +29,7 @@ export const ThemeProvider = ({ children }) => {
         const newTheme = !isDarkMode;
         setIsDarkMode(newTheme);
         try {
-            await AsyncStorage.setItem("isDarkMode", JSON.stringify(newTheme)); 
+            await AsyncStorage.setItem("isDarkMode", JSON.stringify(newTheme));
         } catch (error) {
             console.error("Error saving theme:", error);
         }

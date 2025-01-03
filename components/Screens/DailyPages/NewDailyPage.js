@@ -18,16 +18,13 @@ import { useTheme } from "../../Contexts/ThemeContext";
 // ICONOS
 const backGround = require("../../../assets/Imag/Wallpaper/Wallpaper.jpg");
 const backGroundBlack = require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
-//const linea = require("../../../assets/Imag/Wallpaper/lineas.png");
 const circleFill = require("../../../assets/IconosTexto/circleFill.png");
-
+const URL_DAILY = "http://localhost:8080/api/diary";
 const NewDailyPage = (props) => {
     const { isDarkMode } = useTheme();
     const [text, setText] = useState("");
     const { agregarEntrada } = useContext(DailyContext);
     const [fecha] = useState(new Date());
-
-    // Resto del código del componente...
 
     const formattedDate = `${fecha.getDate().toString().padStart(2, "0")}.${(
         fecha.getMonth() + 1
@@ -38,7 +35,6 @@ const NewDailyPage = (props) => {
         .getHours()
         .toString()
         .padStart(2, "0")}:${fecha.getMinutes().toString().padStart(2, "0")}`;
-
 
     const saveEntry = async () => {
         if (text.trim() === "") {
@@ -52,7 +48,7 @@ const NewDailyPage = (props) => {
         };
         console.log("Datos enviados al servidor:", nuevaPagina);
         try {
-            const response = await fetch("http://localhost:8080/api/diary", {
+            const response = await fetch(URL_DAILY, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -66,17 +62,21 @@ const NewDailyPage = (props) => {
                 agregarEntrada(data);
                 props.navigation.goBack();
             } else {
-                console.error("Error al guardar la página:", response.statusText);
-                alert("Hubo un problema al guardar la página. Inténtalo de nuevo.");
+                console.error(
+                    "Error al guardar la página:",
+                    response.statusText
+                );
+                alert(
+                    "Hubo un problema al guardar la página. Inténtalo de nuevo."
+                );
             }
         } catch (error) {
             console.error("Error al conectar con el servidor:", error);
-            alert("Error de conexión. Verifica que el servidor esté en funcionamiento.");
+            alert(
+                "Error de conexión. Verifica que el servidor esté en funcionamiento."
+            );
         }
     };
-
-
-
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -88,18 +88,22 @@ const NewDailyPage = (props) => {
                     source={isDarkMode ? backGroundBlack : backGround}
                     style={styles.backGround}
                 >
-                    {/* Fecha de la entrada */}
-                    <Text style={[
-                        styles.fecha,
-                        { color: isDarkMode ? "white" : "black" },
-                    ]}>{formattedDate}</Text>
+                    <Text
+                        style={[
+                            styles.fecha,
+                            { color: isDarkMode ? "white" : "black" },
+                        ]}
+                    >
+                        {formattedDate}
+                    </Text>
 
-                    {/* Campo de texto */}
                     <TextInput
                         style={[
                             styles.textInput,
                             {
-                                backgroundColor: isDarkMode ? "#2C2C2E" : "white",
+                                backgroundColor: isDarkMode
+                                    ? "#2C2C2E"
+                                    : "white",
                                 color: isDarkMode ? "white" : "black",
                             },
                         ]}
@@ -113,9 +117,10 @@ const NewDailyPage = (props) => {
                         value={text}
                     />
 
-
-                    {/* Botón Circle Fill para guardar */}
-                    <TouchableOpacity style={styles.iconoAdd} onPress={saveEntry}>
+                    <TouchableOpacity
+                        style={styles.iconoAdd}
+                        onPress={saveEntry}
+                    >
                         <Image
                             source={circleFill}
                             style={[
@@ -142,7 +147,6 @@ const styles = StyleSheet.create({
         width: "93%",
         flex: 1,
         fontSize: 18,
-        //backgroundColor: "transparent", 
 
         borderRadius: 10,
         color: "#333",

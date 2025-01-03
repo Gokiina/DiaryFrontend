@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext } from "react";
 import {
     View,
     Text,
@@ -97,7 +97,6 @@ const ReminderList = ({ navigation }) => {
                         Lista de propósitos
                     </Text>
                 </View>
-                {/* Botón Volver */}
                 <View style={styles.lineaVolver}>
                     <TouchableOpacity onPress={() => navigation.navigate("Start")}>
                         <Text
@@ -117,8 +116,6 @@ const ReminderList = ({ navigation }) => {
                         </Text>
                     </TouchableOpacity>
                 </View>
-
-                {/* Botón para agregar un nuevo recordatorio */}
                 <TouchableOpacity
                     onPress={() => navigation.navigate("RemindersForm")}
                 >
@@ -130,8 +127,6 @@ const ReminderList = ({ navigation }) => {
                         ]}
                     />
                 </TouchableOpacity>
-
-                {/* Lista de recordatorios */}
                 <View style={styles.card}>
                     <FlatList
                         data={reminders}

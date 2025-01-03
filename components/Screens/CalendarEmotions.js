@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState } from "react";
 import {
     View,
     ImageBackground,
@@ -9,11 +9,9 @@ import {
 } from "react-native";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useEmotions } from "../Contexts/EmotionsContext";
-import DateTimePicker from "react-native-ui-datepicker";
 import SummaryView from "../Elements/SummaryView";
 import dayjs from "dayjs";
 
-// Contexto de emociones
 import CustomDatePicker from "../Elements/CustomDatePicker";
 // Fondos
 const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
@@ -25,30 +23,24 @@ const mind = require("../../assets/IconosTexto/mind.png");
 const staroflife = require("../../assets/IconosTexto/staroflife.png");
 
 const CalendarEmotions = (props) => {
-    const { isDarkMode, toggleTheme } = useTheme();
-    const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
-
-    const [selectedEmoji, setSelectedEmoji] = useState({});
+    const { isDarkMode } = useTheme();
     const { emotions, saveEmotion } = useEmotions();
     const [selectedDate, setSelectedDate] = useState(dayjs());
-    const DarkModeSwitch = (value) => {
-        setDarkModeEnabled(value);
-        toggleTheme();
+
+    const markedDates = Object.keys(emotions).reduce((acc, date) => {
+        acc[date] = { selected: true, selectedColor: "yellow" };
+        return acc;
+    }, {});
+
+    const emojisForDates = Object.keys(emotions).reduce((acc, date) => {
+        acc[date] = emotions[date].emoji;
+        return acc;
+    }, {});
+
+    const handleEmojiSelect = (emoji) => {
+        saveEmotion(selectedDate, emoji);
     };
 
-    // Marcar las fechas seleccionadas con las emociones correspondientes
-    // Marcar las fechas seleccionadas con las emociones correspondientes
-    const markedDates = Object.keys(emotions).reduce((acc, date) => {
-        acc[date] = { selected: true, selectedColor: 'yellow' }; // Puedes agregar un color o un estilo al estado seleccionado
-        return acc;
-    }, {});
-    const emojisForDates = Object.keys(emotions).reduce((acc, date) => {
-        acc[date] = emotions[date].emoji; // Aquí guardamos los emojis
-        return acc;
-    }, {});
-    const handleEmojiSelect = (emoji) => {
-        saveEmotion(selectedDate, emoji); // Guardar la emoción para la fecha seleccionada
-    };
     return (
         <View style={styles.container}>
             <ImageBackground
@@ -56,7 +48,9 @@ const CalendarEmotions = (props) => {
                 style={styles.backGround}
             >
                 <View style={styles.lineaVolver}>
-                    <TouchableOpacity onPress={() => props.navigation.navigate("Start")}>
+                    <TouchableOpacity
+                        onPress={() => props.navigation.navigate("Start")}
+                    >
                         <Text
                             style={{
                                 color: isDarkMode ? "#FFFFFF" : "#007AFF",
@@ -67,7 +61,11 @@ const CalendarEmotions = (props) => {
                                 source={flecha}
                                 style={[
                                     styles.iconoTexto,
-                                    { tintColor: isDarkMode ? "white" : "#007AFF" },
+                                    {
+                                        tintColor: isDarkMode
+                                            ? "white"
+                                            : "#007AFF",
+                                    },
                                 ]}
                             />
                             Volver
@@ -80,7 +78,11 @@ const CalendarEmotions = (props) => {
                         source={mind}
                         style={[
                             styles.iconoTitulo,
-                            { tintColor: isDarkMode ? "white" : "rgba(27, 31, 38, 0.72)" },
+                            {
+                                tintColor: isDarkMode
+                                    ? "white"
+                                    : "rgba(27, 31, 38, 0.72)",
+                            },
                         ]}
                     />
                     <Text
@@ -100,14 +102,11 @@ const CalendarEmotions = (props) => {
                         setSelectedDate(date);
                         selectEmoji(date);
                     }}
-                    markedDates={markedDates}  // Añadiendo las fechas marcadas
-                    emojis={emojisForDates}    // Pasando los emojis
+                    markedDates={markedDates}
+                    emojis={emojisForDates}
                 />
 
-<SummaryView 
-    emotions={emotions}
-    isDarkMode={isDarkMode}
-/>
+                <SummaryView emotions={emotions} isDarkMode={isDarkMode} />
             </ImageBackground>
         </View>
     );
@@ -115,13 +114,13 @@ const CalendarEmotions = (props) => {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1
+        flex: 1,
     },
     containerCalendar: {
         marginTop: 150,
         borderRadius: 12,
         padding: 20,
-        backgroundColor: "yellow"
+        backgroundColor: "yellow",
     },
     calendar: {
         marginTop: 150,
@@ -129,7 +128,8 @@ const styles = StyleSheet.create({
         padding: 10,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 7 },
-        shadowOpacity: 0.3, backgroundColor: "green"
+        shadowOpacity: 0.3,
+        backgroundColor: "green",
     },
     backGround: {
         flex: 1,
@@ -143,15 +143,15 @@ const styles = StyleSheet.create({
         marginTop: 0,
         marginBottom: 0,
     },
-   lineaTitulo: {
+    lineaTitulo: {
         flexDirection: "row",
         alignItems: "center",
-        width: '100%',
+        width: "100%",
         position: "absolute",
         top: 100,
-        justifyContent: 'center',
+        justifyContent: "center",
         paddingHorizontal: 20,
-        marginBottom: 40
+        marginBottom: 40,
     },
     lineaTitulo2: {
         flexDirection: "row",
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
         height: 16,
         marginRight: 10,
         marginTop: 0,
-        marginBottom: 0
+        marginBottom: 0,
     },
     iconoTitulo2: {
         width: 12,
@@ -218,7 +218,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.5)", // Fondo semitransparente
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
     },
     pickerContainer: {
         backgroundColor: "white",
@@ -272,6 +272,5 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
 });
-
 
 export default CalendarEmotions;
