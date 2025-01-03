@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import {
     StyleSheet,
     Text,
@@ -9,10 +9,11 @@ import {
 } from "react-native";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useFavorites } from "../Contexts/FavoritesContext";
-import { EmojiRow } from "../Elements/EmojiRow";
 import { useEmotions } from "../Contexts/EmotionsContext";
-import dayjs from "dayjs";
+import { EmojiRow } from "../Elements/EmojiRow";
 
+import dayjs from "dayjs";
+import { Linking } from "react-native";
 
 // Wallpaper
 const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
@@ -33,39 +34,65 @@ const sun = require("../../assets/IconosTexto/sun.png");
 const Start = (props) => {
     const { isDarkMode, toggleTheme } = useTheme();
     const { favorites } = useFavorites();
-    const [favoritePhrase, setFavoritePhrase] = useState(null); 
-    const API_BASE_URL = "http://localhost:8080/api/phrases";
+    const [favoritePhrase, setFavoritePhrase] = useState(null);
+    const API_BASE_URL_PHRASES = "http://localhost:8080/api/phrases";
+    const API_BASE_URL_CALENDAR = "http://localhost:8080/api/emotions";
     const favoritesRef = useRef([]);
+    const { emotions, fetchEmotions, saveEmotion } = useEmotions();
+    const [selectedEmoji, setSelectedEmoji] = useState(null);
+
+    const today = dayjs().format("YYYY-MM-DD");
+    const openCalendar = () => {
+        Linking.openURL("calshow://");
+    };
+
+    useEffect(() => {
+        const loadEmotions = async () => {
+            await fetchEmotions(); // Obtener emociones del backend
+            if (emotions[today]) {
+                setSelectedEmoji(emotions[today]); // Establecer emoción del día actual
+            }
+        };
+
+        loadEmotions();
+    }, [emotions, today]); // Solo depende de la fecha actual
+
+    const handleEmojiSelect = async (emoji) => {
+        await saveEmotion(today, emoji); // Guardar en el backend
+        setSelectedEmoji(emoji); // Actualizar emoción seleccionada
+    };
 
     useEffect(() => {
         const fetchFavoritePhrases = async () => {
             try {
-                const response = await fetch(API_BASE_URL);
+                const response = await fetch(API_BASE_URL_PHRASES);
                 const allPhrases = await response.json();
 
                 const favoritePhrases = allPhrases.filter((phrase) =>
                     favorites.includes(phrase.id)
                 );
 
-
                 if (favoritePhrases.length > 0) {
-                    const randomPhrase = favoritePhrases[Math.floor(Math.random() * favoritePhrases.length)].phrase;
+                    const randomPhrase =
+                        favoritePhrases[
+                            Math.floor(Math.random() * favoritePhrases.length)
+                        ].phrase;
                     setFavoritePhrase(randomPhrase);
                 } else {
-
-                    setFavoritePhrase("No puedes controlar el viento, pero sí puedes ajustar las velas.");
+                    setFavoritePhrase(
+                        "No puedes controlar el viento, pero sí puedes ajustar las velas."
+                    );
                 }
             } catch (error) {
                 console.error("Error fetching favorite phrases:", error);
-                setFavoritePhrase("No puedes controlar el viento, pero sí puedes ajustar las velas.");
+                setFavoritePhrase(
+                    "No puedes controlar el viento, pero sí puedes ajustar las velas."
+                );
             }
         };
 
         fetchFavoritePhrases();
-    }, [favorites]);  
-
-
-
+    }, [favorites]);
 
     return (
         <View style={styles.container}>
@@ -154,7 +181,10 @@ const Start = (props) => {
                         </Text>
                     </TouchableOpacity>
 
-                    <EmojiRow></EmojiRow>
+                    <EmojiRow
+                        selected={selectedEmoji} // Pasamos el emoji seleccionado
+                        onSelectEmoji={handleEmojiSelect} // Maneja la selección del emoji
+                    />
                 </View>
 
                 <TouchableOpacity
@@ -167,9 +197,7 @@ const Start = (props) => {
                                 : "rgba(0, 0, 0, 0.08)",
                         },
                     ]}
-                    onPress={() =>
-                        props.navigation.navigate("Phrases")
-                    }
+                    onPress={() => props.navigation.navigate("Phrases")}
                 >
                     <View style={styles.lineaTitulo}>
                         <Image
@@ -220,30 +248,28 @@ const Start = (props) => {
                         ]}
                     >
                         {favoritePhrase
-                            ? favoritePhrase 
-                            : "No puedes controlar el viento, pero sí puedes ajustar las velas."
-                        }
+                            ? favoritePhrase
+                            : "No puedes controlar el viento, pero sí puedes ajustar las velas."}
                     </Text>
                 </TouchableOpacity>
 
                 <View id="dock" style={styles.dock}>
                     <TouchableOpacity
-                        onPress={() => props.navigation.navigate("RemindersList")}
+                        onPress={() =>
+                            props.navigation.navigate("RemindersList")
+                        }
                     >
                         <Image source={iconList} style={styles.iconStyle} />
                     </TouchableOpacity>
                     <TouchableOpacity
-                        onPress={() => props.navigation.navigate("DailyEntries")}
+                        onPress={() =>
+                            props.navigation.navigate("DailyEntries")
+                        }
                     >
                         <Image source={iconDaily} style={styles.iconStyle} />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => alert("Botón calendario presionado!")}
-                    >
-                        <Image
-                            source={iconCalendar}
-                            style={styles.iconStyle}
-                        />
+                    <TouchableOpacity onPress={openCalendar}>
+                        <Image source={iconCalendar} style={styles.iconStyle} />
                     </TouchableOpacity>
                 </View>
             </ImageBackground>

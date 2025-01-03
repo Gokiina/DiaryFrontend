@@ -61,25 +61,47 @@ const Phrases = (props) => {
     );
 
 
-    const handleToggleFavorite = async (id) => {
-        if (removingFavorites.includes(id)) return; 
-
-        setRemovingFavorites((prev) => [...prev, id]);
-
+    const handleToggleFavorite = async (id, currentStatus) => {
+        const method = currentStatus ? "DELETE" : "POST"; // Usar el método apropiado
         try {
-
-            const url = `http://localhost:8080/api/phrases/${id}/favorite`;
-            await fetch(url, { method: "POST" });
-            toggleFavorite(id);
+            const response = await fetch(`http://localhost:8080/api/phrases/${id}/favorite`, {
+                method: method,
+            });
+    
+            if (!response.ok) {
+                throw new Error("Error al actualizar el estado de favorito");
+            }
+    
+            const updatedPhrase = await response.json();
+    
+            // Actualizar el estado local con la nueva información
+            setPhrases((prev) =>
+                prev.map((phrase) =>
+                    phrase._id === id ? { ...phrase, isFavorite: updatedPhrase.isFavorite } : phrase
+                )
+            );
         } catch (error) {
-            console.error("Error al cambiar el estado del favorito:", error);
+            console.error("Error al cambiar el estado de favorito:", error);
         }
-
-        setTimeout(() => {
-            setRemovingFavorites((prev) => prev.filter((item) => item !== id));
-        }, 500);
     };
-
+    
+    useEffect(() => {
+        const fetchFavoritePhrases = async () => {
+            try {
+                const response = await fetch("http://localhost:8080/api/phrases/favorites");
+                if (!response.ok) {
+                    throw new Error("Error al obtener frases favoritas");
+                }
+                const data = await response.json();
+                setPhrases(data);
+            } catch (error) {
+                console.error("Error al cargar frases favoritas:", error);
+            }
+        };
+    
+        fetchFavoritePhrases();
+    }, []);
+    
 
     const isFavorite = (id) => {
         return favorites.includes(id);

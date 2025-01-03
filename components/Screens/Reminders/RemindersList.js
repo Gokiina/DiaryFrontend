@@ -47,11 +47,11 @@ const ReminderList = ({ navigation }) => {
                     },
                 ]}
                 onPress={() =>
-                  navigation.navigate("RemindersForm", {
-                      reminderToEdit: item,
-                  })
-              }
-              
+                    navigation.navigate("RemindersForm", {
+                        reminderToEdit: item,
+                    })
+                }
+
             >
                 <Text
                     style={[
@@ -86,7 +86,17 @@ const ReminderList = ({ navigation }) => {
             <ImageBackground
                 source={isDarkMode ? backGroundBlack : backGround}
                 style={styles.backGround}
-            >
+            ><View style={styles.lineaTitulo}>
+                    <Text
+                        style={[
+                            styles.titulo,
+                            { color: isDarkMode ? "#FFFFFF" : "#000" },
+                        ]}
+                    >
+                        {" "}
+                        Lista de propósitos
+                    </Text>
+                </View>
                 {/* Botón Volver */}
                 <View style={styles.lineaVolver}>
                     <TouchableOpacity onPress={() => navigation.navigate("Start")}>
@@ -143,6 +153,19 @@ const styles = StyleSheet.create({
         alignItems: "center",
         resizeMode: "cover",
         justifyContent: "center",
+    }, titulo: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginTop: 80,
+        marginBottom: 20,
+        color: "#000",
+    },
+    lineaTitulo: {
+        flexDirection: "row",
+        alignItems: "center",
+        position: "absolute",
+        top: 10,
+        padding: 10,
     },
     card: {
         borderRadius: 10,
@@ -150,7 +173,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         bottom: 50,
         top: 120,
-        paddingHorizontal: 10,
+        paddingHorizontal: 10, marginTop: 20,
     },
     lineaVolver: {
         position: "absolute",

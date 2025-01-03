@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
     View,
     ImageBackground,
@@ -7,47 +7,48 @@ import {
     TouchableOpacity,
     Image,
 } from "react-native";
-import { Switch } from "react-native-paper";
+import { useTheme } from "../Contexts/ThemeContext";
+import { useEmotions } from "../Contexts/EmotionsContext";
 import DateTimePicker from "react-native-ui-datepicker";
+import SummaryView from "../Elements/SummaryView";
 import dayjs from "dayjs";
 
-
-//  CONTEXTS
-import { useTheme } from "../Contexts/ThemeContext"; 
-
-// Wallpaper
+// Contexto de emociones
+import CustomDatePicker from "../Elements/CustomDatePicker";
+// Fondos
 const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
 const backGroundBlack = require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
 
-// ICONOS DE TEXTO
+// Iconos
 const flecha = require("../../assets/IconosTexto/flecha.png");
 const mind = require("../../assets/IconosTexto/mind.png");
 const staroflife = require("../../assets/IconosTexto/staroflife.png");
 
 const CalendarEmotions = (props) => {
-    const { isDarkMode, toggleTheme } = useTheme(); 
+    const { isDarkMode, toggleTheme } = useTheme();
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
 
-
-    const [selectedEmojis, setSelectedEmojis] = useState({});
-    const [date, setDate] = useState(dayjs());
-
+    const [selectedEmoji, setSelectedEmoji] = useState({});
+    const { emotions, saveEmotion } = useEmotions();
+    const [selectedDate, setSelectedDate] = useState(dayjs());
     const DarkModeSwitch = (value) => {
         setDarkModeEnabled(value);
         toggleTheme();
     };
 
-    const selectEmoji = (day) => {
-
-        const selectedEmoji = "😁"; 
-
-
-        setSelectedEmojis({
-            ...selectedEmojis,
-            [day.dateString]: selectedEmoji,
-        });
+    // Marcar las fechas seleccionadas con las emociones correspondientes
+    // Marcar las fechas seleccionadas con las emociones correspondientes
+    const markedDates = Object.keys(emotions).reduce((acc, date) => {
+        acc[date] = { selected: true, selectedColor: 'yellow' }; // Puedes agregar un color o un estilo al estado seleccionado
+        return acc;
+    }, {});
+    const emojisForDates = Object.keys(emotions).reduce((acc, date) => {
+        acc[date] = emotions[date].emoji; // Aquí guardamos los emojis
+        return acc;
+    }, {});
+    const handleEmojiSelect = (emoji) => {
+        saveEmotion(selectedDate, emoji); // Guardar la emoción para la fecha seleccionada
     };
-
     return (
         <View style={styles.container}>
             <ImageBackground
@@ -55,9 +56,7 @@ const CalendarEmotions = (props) => {
                 style={styles.backGround}
             >
                 <View style={styles.lineaVolver}>
-                    <TouchableOpacity
-                        onPress={() => props.navigation.navigate("Start")}
-                    >
+                    <TouchableOpacity onPress={() => props.navigation.navigate("Start")}>
                         <Text
                             style={{
                                 color: isDarkMode ? "#FFFFFF" : "#007AFF",
@@ -68,177 +67,47 @@ const CalendarEmotions = (props) => {
                                 source={flecha}
                                 style={[
                                     styles.iconoTexto,
-                                    {
-                                        tintColor: isDarkMode
-                                            ? "white"
-                                            : "#007AFF",
-                                    },
+                                    { tintColor: isDarkMode ? "white" : "#007AFF" },
                                 ]}
-                                
-                                
                             />
                             Volver
                         </Text>
                     </TouchableOpacity>
                 </View>
 
-                {/* Título Estado */}
                 <View style={styles.lineaTitulo}>
-                <Image
-                                source={mind}
-                                style={[
-                                    styles.iconoTitulo,
-                                    {
-                                        tintColor: isDarkMode
-                                            ? "white"
-                                            : "rgba(27, 31, 38, 0.72)",
-                                    },
-                                ]}
-                                
-                                
-                            />
+                    <Image
+                        source={mind}
+                        style={[
+                            styles.iconoTitulo,
+                            { tintColor: isDarkMode ? "white" : "rgba(27, 31, 38, 0.72)" },
+                        ]}
+                    />
                     <Text
                         style={[
                             styles.titulo,
-                            {
-                                color: isDarkMode ? "#FFFFFF" : "#000",
-                            },
+                            { color: isDarkMode ? "#FFFFFF" : "#000" },
                         ]}
                     >
-                        {" "}
                         ESTADO
                     </Text>
                 </View>
 
-                {/*Contenido */}
-                <View style={styles.containerCalendar}>
-                    {/* Calendario */}
-                    <View
-                        style={[
-                            styles.calendar,
-                            {
-                                backgroundColor: isDarkMode
-                                    ? "rgba(36, 43, 72, 1)"
-                                    : "rgba(248, 255, 255, 1)",
-                            },
-                        ]}
-                    >
-                        <DateTimePicker
-                            mode="range"
-                            date={date}
-                            onChange={(params) => setDate(params.date)}
-                            firstDayOfWeek={1}
-                            headerButtonsPosition="right"
-                            headerButtonColor="rgba(0, 122, 255, 1)"
+                <CustomDatePicker
+                    style={styles.calendar}
+                    selectedDate={selectedDate}
+                    onSelectDate={(date) => {
+                        setSelectedDate(date);
+                        selectEmoji(date);
+                    }}
+                    markedDates={markedDates}  // Añadiendo las fechas marcadas
+                    emojis={emojisForDates}    // Pasando los emojis
+                />
 
-                            todayContainerStyle={{
-                                borderWidth: 0,
-                            }}
-                            calendarTextStyle={{
-                                fontSize: 20,
-                                color: isDarkMode ? "white" : "black",
-                            }}
-                            weekDaysContainerStyle={{
-                                borderColor: 0,
-                            }}
-                            weekDaysTextStyle={{
-                                color: isDarkMode
-                                    ? "white"
-                                    : "rgba(60, 60, 67, 0.3)",
-
-                                textTransform: "uppercase",
-                            }}
-                            todayTextStyle={{
-                                color: isDarkMode ? "white" : "black",
-                            }}
-                            headerTextStyle={{
-                                color: isDarkMode ? "white" : "black",
-                            }}
-                        />
-                    </View>
-
-                    {/* Resumen */}
-                    <View
-                        style={[
-                            styles.summaryContainer,
-                            {
-                                backgroundColor: isDarkMode
-                                    ? "rgba(36, 43, 72, 1)"
-                                    : "rgba(248, 255, 255, 1)",
-                            },
-                        ]}
-                    >
-                        <View style={styles.lineaTitulo2}>
-                        <Image
-                                source={staroflife}
-                                style={[
-                                    styles.iconoTitulo2,
-                                    {
-                                        tintColor: isDarkMode
-                                            ? "white"
-                                            : "rgba(27, 31, 38, 0.72)",
-                                    },
-                                ]}
-                                
-                                
-                            />
-                            <Text
-                            style={[
-                                styles.summaryTitle,
-                                {
-                                    color: isDarkMode
-                                        ? "#FFFFFF"
-                                        : "black",
-                                },
-                            ]}
-                        
-                            >
-                                {" "}
-                                RESUMEN
-                            </Text>
-                        </View>
-
-                        <Text
-                            style={[
-                                styles.summaryText,
-                                {
-                                    color: isDarkMode ? "white" : "#999999",
-                                },
-                            ]}
-                        >
-                            Este mes te has sentido mayormente{" "}
-                            <Text style={styles.highlight}>increíble</Text>.
-                            ¡Sigue haciendo las cosas tal y como las haces!
-                            ¡Enhorabuena!
-                        </Text>
-                        <View style={styles.emojiSummary}>
-                            <Text style={styles.emoji}>😁</Text>
-                            <Text
-                                style={[
-                                    styles.emojiCount,
-                                    {
-                                        color: isDarkMode ? "white" : "black",
-                                    },
-                                ]}
-                            >
-                                8
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-
-                <View
-                    style={[
-                        styles.card,
-                        {
-                            backgroundColor: isDarkMode
-                                ? "#2C2C2E"
-                                : "rgba(255, 255, 255, 0.9)",
-                        },
-                    ]}
-                >
-                </View>
-                
+<SummaryView 
+    emotions={emotions}
+    isDarkMode={isDarkMode}
+/>
             </ImageBackground>
         </View>
     );
@@ -246,18 +115,21 @@ const CalendarEmotions = (props) => {
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        flex: 1
     },
     containerCalendar: {
+        marginTop: 150,
         borderRadius: 12,
         padding: 20,
+        backgroundColor: "yellow"
     },
     calendar: {
+        marginTop: 150,
         borderRadius: 12,
         padding: 10,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 7 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.3, backgroundColor: "green"
     },
     backGround: {
         flex: 1,
@@ -268,27 +140,31 @@ const styles = StyleSheet.create({
     titulo: {
         fontSize: 20,
         fontWeight: "bold",
-        marginTop: 80,
-        marginBottom: 20,
+        marginTop: 0,
+        marginBottom: 0,
     },
-    lineaTitulo: {
+   lineaTitulo: {
         flexDirection: "row",
         alignItems: "center",
+        width: '100%',
         position: "absolute",
-        top: 10,
-        padding: 10,
+        top: 100,
+        justifyContent: 'center',
+        paddingHorizontal: 20,
+        marginBottom: 40
     },
     lineaTitulo2: {
         flexDirection: "row",
         alignItems: "center",
         position: "absolute",
-        padding: 15,
+        padding: 10,
     },
     iconoTitulo: {
         width: 18,
         height: 16,
-        marginTop: 80,
-        marginBottom: 20,
+        marginRight: 10,
+        marginTop: 0,
+        marginBottom: 0
     },
     iconoTitulo2: {
         width: 12,
@@ -298,7 +174,7 @@ const styles = StyleSheet.create({
 
     card: {
         backgroundColor: "rgba(255, 255, 255, 0.9)",
-        borderRadius: 10,
+        borderRadius: 12,
         paddingHorizontal: 15,
         width: "92%",
         position: "absolute",
@@ -317,7 +193,7 @@ const styles = StyleSheet.create({
     },
     timeButton: {
         backgroundColor: "rgba(120, 120, 128, 0.12)",
-        borderRadius: 10,
+        borderRadius: 12,
         paddingHorizontal: 10,
         paddingVertical: 7,
         alignItems: "center",
@@ -342,12 +218,12 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "rgba(0, 0, 0, 0.5)", 
+        backgroundColor: "rgba(0, 0, 0, 0.5)", // Fondo semitransparente
     },
     pickerContainer: {
         backgroundColor: "white",
         padding: 20,
-        borderRadius: 10,
+        borderRadius: 12,
         alignItems: "center",
         justifyContent: "center",
         width: "80%",
@@ -364,8 +240,8 @@ const styles = StyleSheet.create({
     summaryContainer: {
         marginTop: 40,
         backgroundColor: "rgba(255, 255, 255, 1)",
-        borderRadius: 20,
-        padding: 15,
+        borderRadius: 12,
+        padding: 10,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 7 },
         shadowOpacity: 0.3,
@@ -396,5 +272,6 @@ const styles = StyleSheet.create({
         marginLeft: 10,
     },
 });
+
 
 export default CalendarEmotions;

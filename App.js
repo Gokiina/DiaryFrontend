@@ -13,6 +13,7 @@ import NewDailyPage from "./components/Screens/DailyPages/NewDailyPage";
 import DetailsDailyPage from "./components/Screens/DailyPages/DetailsDailyPage";
 import RemindersForm from "./components/Screens/Reminders/RemindersForm";
 import RemindersList from "./components/Screens/Reminders/RemindersList";
+import CustomDatePicker from "./components/Elements/CustomDatePicker";
 
 // CONTEXT
 import { ThemeProvider } from "./components/Contexts/ThemeContext";
@@ -43,6 +44,7 @@ const App = () => (
                     <Stack.Screen name="DetailsDailyPage" component={DetailsDailyPage} />
                     <Stack.Screen name="RemindersList" component={RemindersList} />
                     <Stack.Screen name="RemindersForm" component={RemindersForm} />
+                    <Stack.Screen name="CustomDatePicker" component={CustomDatePicker} />
                 </Stack.Navigator>
             </NavigationContainer>
         </RemindersProvider>

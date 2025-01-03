@@ -1,42 +1,54 @@
-import React, { Component } from 'react';
+import React, { createContext, useState, useContext } from "react";
 
+const EmotionsContext = createContext();
 
-export const EmotionsContext = React.createContext();
+export const EmotionsProvider = ({ children }) => {
+    const [emotions, setEmotions] = useState({}); // Almacena emociones por fecha
 
-export class EmotionsProvider extends Component {
-    state = {
-        emotions: {}, 
+    const fetchEmotions = async () => {
+        try {
+            const response = await fetch("http://localhost:8080/api/emotions");
+            const data = await response.json();
+            const emotionsMap = data.reduce((acc, { date, emotion }) => {
+                acc[date] = emotion;
+                return acc;
+            }, {});
+            setEmotions(emotionsMap); // Actualizar emociones en el estado
+        } catch (error) {
+            console.error("Error al cargar emociones:", error);
+        }
     };
 
-
-    registerEmotion = (date, emoji) => {
-        this.setState(prevState => ({
-            emotions: {
-                ...prevState.emotions,
-                [date]: emoji, 
-            },
-        }));
+    const saveEmotion = async (date, emotion) => {
+        try {
+            const response = await fetch("http://localhost:8080/api/emotions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ date, emotion }),
+            });
+    
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("Error al guardar la emoción:", errorText);
+                throw new Error(`Backend error: ${errorText}`);
+            }
+    
+            setEmotions((prev) => ({
+                ...prev,
+                [date]: emotion,
+            }));
+        } catch (error) {
+            console.error("Error al guardar la emoción:", error);
+        }
     };
 
-    removeEmotion = (date) => {
-        this.setState(prevState => {
-            const emotions = { ...prevState.emotions };
-            delete emotions[date];
-            return { emotions };
-        });
-    };
+    return (
+        <EmotionsContext.Provider value={{ emotions, fetchEmotions, saveEmotion }}>
+            {children}
+        </EmotionsContext.Provider>
+    );
+};
 
-    render() {
-        return (
-            <EmotionsContext.Provider
-                value={{
-                    emotions: this.state.emotions, // Proveer el estado de emociones
-                    registerEmotion: this.registerEmotion, // Proveer la función de registro
-                    removeEmotion: this.removeEmotion, // Proveer la función para eliminar emociones
-                }}
-            >
-                {this.props.children}
-            </EmotionsContext.Provider>
-        );
-    }
-}
+export const useEmotions = () => useContext(EmotionsContext);
