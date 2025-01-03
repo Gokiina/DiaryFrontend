@@ -19,6 +19,8 @@
     "dayjs": "^1.11.13",
     "expo": "^52.0.18",
     "expo-local-authentication": "^14.0.1",
+    "expo-notifications": "~0.29.11",
+    "expo-permissions": "^14.4.0",
     "expo-status-bar": "~1.12.1",
     "popmotion": "^11.0.5",
     "react": "18.3.1",

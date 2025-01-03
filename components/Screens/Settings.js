@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import {
     View,
     ImageBackground,
@@ -12,8 +12,9 @@ import {
 import { Title, Switch } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as LocalAuthentication from "expo-local-authentication";
+import * as Notifications from "expo-notifications";
 
-//  CONTEXTS
+// CONTEXTS
 import { useTheme } from "../Contexts/ThemeContext";
 import { SettingsContext } from "../Contexts/SettingsContext";
 
@@ -27,7 +28,7 @@ const backGroundBlack = require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg
 const flecha = require("../../assets/IconosTexto/flecha.png");
 
 const Settings = (props) => {
-    const { isDarkMode } = useTheme();
+    const { isDarkMode, toggleTheme } = useTheme();
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
     const [showPicker, setShowPicker] = useState(false);
 
@@ -40,6 +41,99 @@ const Settings = (props) => {
         setTime,
     } = useContext(SettingsContext);
 
+    // MODO NOCHE
+    const DarkModeSwitch = (value) => {
+        setDarkModeEnabled(value);
+        toggleTheme();
+    };
+
+    // RECORDATORIO
+    const onTimeChange = (event, selectedTime) => {
+        const currentTime = selectedTime || time;
+        setTime(currentTime);
+
+        if (record) {
+            scheduleNotification(currentTime);
+        }
+
+        setShowPicker(false);
+    };
+
+    const toggleReminder = (value) => {
+        setRecord(value);
+
+        if (value && !showPicker) {
+            setShowPicker(true);
+        } else if (!value) {
+            console.log("Recordatorio desactivado.");
+        }
+    };
+
+    useEffect(() => {
+        Notifications.setNotificationHandler({
+            handleNotification: async () => ({
+                shouldShowAlert: true,
+                shouldPlaySound: true,
+                shouldSetBadge: false,
+            }),
+        });
+
+        const requestPermissions = async () => {
+            const { status } = await Notifications.requestPermissionsAsync();
+            if (status !== "granted") {
+                alert("Se requieren permisos para mostrar notificaciones.");
+            }
+        };
+        requestPermissions();
+    }, []);
+
+    const formatTime = (time) => {
+        let hours = time.getHours();
+        const minutes = time.getMinutes();
+        const suffix = hours >= 12 ? "PM" : "AM";
+
+        hours = hours % 12 || 12;
+        const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+
+        return `${hours}:${formattedMinutes} ${suffix}`;
+    };
+
+    const scheduleNotification = async (time) => {
+        const now = new Date();
+        const triggerTime = new Date(time);
+
+        if (
+            triggerTime.getHours() < now.getHours() ||
+            (triggerTime.getHours() === now.getHours() &&
+                triggerTime.getMinutes() <= now.getMinutes())
+        ) {
+            triggerTime.setDate(triggerTime.getDate() + 1);
+        }
+
+        console.log("Programando notificación para:", triggerTime);
+
+        await Notifications.scheduleNotificationAsync({
+            content: {
+                title: "Hora de relax 🧘🏻",
+                body: "¿Qué tal si escribes sobre tu día?",
+                sound: true,
+            },
+            trigger: triggerTime,
+        });
+
+        alert(
+            `Notificación programada para las ${triggerTime.toLocaleTimeString(
+                "es-ES",
+                { hour: "2-digit", minute: "2-digit" }
+            )}`
+        );
+    };
+
+
+
+
+
+    // FACE ID
     const authenticateWithFaceID = async () => {
         const isBiometricAvailable =
             await LocalAuthentication.hasHardwareAsync();
@@ -90,27 +184,6 @@ const Settings = (props) => {
         } else {
             setFaceIdEnabled(false);
         }
-    };
-
-    const DarkModeSwitch = (value) => {
-        setDarkModeEnabled(value);
-        toggleTheme();
-    };
-    const onTimeChange = (event, selectedTime) => {
-        const currentTime = selectedTime || time;
-        setShowPicker(Platform.OS === "ios");
-        setTime(currentTime);
-    };
-
-    const formatTime = (time) => {
-        let hours = time.getHours();
-        const minutes = time.getMinutes();
-        const suffix = hours >= 12 ? "PM" : "AM";
-
-        hours = hours % 12 || 12;
-        const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-
-        return `${hours}:${formattedMinutes} ${suffix}`;
     };
 
     return (
@@ -188,12 +261,10 @@ const Settings = (props) => {
 
                             <Switch
                                 value={record}
-                                onValueChange={(value) => {
-                                    setRecord(value);
-                                    setShowPicker(value);
-                                }}
+                                onValueChange={toggleReminder}
                                 color={"#30D158"}
                             />
+
                             <Modal
                                 transparent={true}
                                 visible={showPicker}
@@ -205,7 +276,8 @@ const Settings = (props) => {
                                         <DateTimePicker
                                             value={time}
                                             mode="time"
-                                            display="spinner"
+                                            display={Platform.OS === "ios" ? "spinner" : "default"}
+                                            themeVariant="light"
                                             onChange={onTimeChange}
                                         />
                                         <TouchableOpacity
@@ -223,7 +295,7 @@ const Settings = (props) => {
                             </Modal>
                         </View>
                     </View>
-                    <Separator></Separator>
+                    <Separator />
 
                     <View style={styles.fila}>
                         <Text
@@ -240,7 +312,7 @@ const Settings = (props) => {
                             color={"#30D158"}
                         />
                     </View>
-                    <Separator></Separator>
+                    <Separator />
 
                     <View style={styles.fila}>
                         <Text
