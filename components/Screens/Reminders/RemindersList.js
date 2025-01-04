@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef, useCallback } from 'react';
+import React, { useState, useContext, useRef, useCallback } from "react";
 import {
     View,
     Text,
@@ -7,9 +7,11 @@ import {
     StyleSheet,
     Image,
     ImageBackground,
-} from 'react-native';
-import { Swipeable } from 'react-native-gesture-handler';
-import { useTheme } from '../../Contexts/ThemeContext';
+} from "react-native";
+import { Swipeable } from "react-native-gesture-handler";
+import { useTheme } from "../../Contexts/ThemeContext";
+import { useFocusEffect } from "@react-navigation/native";
+import Icon from "react-native-vector-icons/FontAwesome";
 
 // Wallpapers e iconos
 const backGround = require("../../../assets/Imag/Wallpaper/Wallpaper.jpg");
@@ -17,19 +19,27 @@ const backGroundBlack = require("../../../assets/Imag/Wallpaper/WallpaperBlack.j
 const flecha = require("../../../assets/IconosTexto/flecha.png");
 const plusCircle2 = require("../../../assets/IconosTexto/plusCircle2.png");
 const trash = require("../../../assets/IconosTexto/trash.png");
-const sun = require("../../../assets/IconosTexto/sun.png");
+const flag = require("../../../assets/IconosTexto/flag.png");
+const pencil = require("../../../assets/IconosTexto/pencil.png");
+const eye = require("../../../assets/IconosTexto/eye.png");
+const eyeSlash = require("../../../assets/IconosTexto/eyeSlash.png");
 
 const ReminderList = (props) => {
     const { isDarkMode } = useTheme();
     const [reminders, setReminders] = useState([]);
-    
-    // Referencias para los swipeables
+    const [showCompleted, setShowCompleted] = useState(false);
+    const URL_REMINDERS = "http://localhost:8080/api/reminders";
     const openSwipeableRef = useRef(null);
     const swipeableRefs = useRef({});
 
-    // Función para cerrar todos los swipeables
+    useFocusEffect(
+        useCallback(() => {
+            fetchReminders();
+        }, [showCompleted])
+    );
+
     const closeAllSwipeables = useCallback(() => {
-        Object.values(swipeableRefs.current).forEach(ref => {
+        Object.values(swipeableRefs.current).forEach((ref) => {
             if (ref && ref.close) {
                 ref.close();
             }
@@ -37,39 +47,78 @@ const ReminderList = (props) => {
         openSwipeableRef.current = null;
     }, []);
 
-    // Función para manejar la navegación
-    const handleNavigation = useCallback((route, params = {}) => {
-        closeAllSwipeables();
-        props.navigation.navigate(route, params);
-    }, [props.navigation]);
+    const handleNavigation = useCallback(
+        (route, params = {}) => {
+            closeAllSwipeables();
+            props.navigation.navigate(route, params);
+        },
+        [props.navigation]
+    );
 
-    // Funciones para manejar los recordatorios
     const fetchReminders = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/reminders');
-            if (!response.ok) throw new Error('Network response was not ok');
+            const response = await fetch(URL_REMINDERS);
+            if (!response.ok) throw new Error("Network response was not ok");
             const data = await response.json();
-            setReminders(data);
+
+            // Asegurarse de que las fechas sean strings
+            const processedData = data.map((reminder) => ({
+                ...reminder,
+                date: reminder.date ? reminder.date.toString() : null,
+                time: reminder.time ? reminder.time.toString() : null,
+            }));
+
+            const sortedData = processedData.sort((a, b) => {
+                if (a.completed === b.completed) return 0;
+                return a.completed ? 1 : -1;
+            });
+
+            const filteredData = showCompleted
+                ? sortedData
+                : sortedData.filter((item) => !item.completed);
+
+            setReminders(filteredData);
         } catch (error) {
-            console.error('Error fetching reminders:', error);
+            console.error("Error fetching reminders:", error);
         }
     };
 
     const deleteReminder = async (id) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/reminders/${id}`, {
-                method: 'DELETE',
+            const response = await fetch(`${URL_REMINDERS}/${id}`, {
+                method: "DELETE",
             });
-            if (!response.ok) throw new Error('Network response was not ok');
+            if (!response.ok) throw new Error("Network response was not ok");
             fetchReminders();
         } catch (error) {
-            console.error('Error deleting reminder:', error);
+            console.error("Error deleting reminder:", error);
         }
     };
 
-    React.useEffect(() => {
-        fetchReminders();
-    }, []);
+    const toggleCompleted = async (id) => {
+        try {
+            const response = await fetch(`${URL_REMINDERS}/${id}/complete`, {
+                method: "PATCH",
+            });
+            if (!response.ok) throw new Error("Network response was not ok");
+
+            setReminders((prevReminders) => {
+                const updatedReminders = prevReminders.map((reminder) =>
+                    reminder.id === id
+                        ? { ...reminder, completed: !reminder.completed }
+                        : reminder
+                );
+                return updatedReminders.sort((a, b) => {
+                    if (a.completed === b.completed) return 0;
+                    return a.completed ? 1 : -1;
+                });
+            });
+
+            setTimeout(fetchReminders, 300);
+        } catch (error) {
+            console.error("Error toggling reminder:", error);
+        }
+    };
 
     const renderRightActions = (id) => (
         <TouchableOpacity
@@ -94,7 +143,10 @@ const ReminderList = (props) => {
             renderRightActions={() => renderRightActions(item.id)}
             rightThreshold={50}
             onSwipeableWillOpen={() => {
-                if (openSwipeableRef.current && openSwipeableRef.current !== swipeableRefs.current[item.id]) {
+                if (
+                    openSwipeableRef.current &&
+                    openSwipeableRef.current !== swipeableRefs.current[item.id]
+                ) {
                     openSwipeableRef.current.close();
                 }
                 openSwipeableRef.current = swipeableRefs.current[item.id];
@@ -107,11 +159,22 @@ const ReminderList = (props) => {
                         backgroundColor: isDarkMode
                             ? "rgba(155, 160, 180, 0.90)"
                             : "rgba(255, 255, 255, 0.9)",
+                        opacity: item.completed ? 0.7 : 1,
                     },
                 ]}
-                onPress={() => handleNavigation("RemindersForm", { reminder: item })}
+                onPress={() =>
+                    handleNavigation("RemindersForm", { reminder: item })
+                }
             >
-                <View style={styles.checkbox} />
+                <TouchableOpacity
+                    style={[
+                        styles.checkbox,
+                        item.completed && styles.checkboxCompleted,
+                    ]}
+                    onPress={() => toggleCompleted(item.id)}
+                >
+                    {item.completed && <Text style={styles.checkmark}>✓</Text>}
+                </TouchableOpacity>
                 <View style={styles.reminderContent}>
                     <Text
                         style={[
@@ -120,6 +183,9 @@ const ReminderList = (props) => {
                                 color: isDarkMode
                                     ? "rgba(255, 255, 255, 0.9)"
                                     : "#2C2C2E",
+                                textDecorationLine: item.completed
+                                    ? "line-through"
+                                    : "none",
                             },
                         ]}
                     >
@@ -127,16 +193,38 @@ const ReminderList = (props) => {
                     </Text>
                     {item.flagged && (
                         <Image
-                            source={sun}
+                            source={flag}
                             style={[
                                 styles.flagIcon,
-                                { tintColor: isDarkMode ? "#FFD700" : "#FF9500" }
+                                {
+                                    tintColor: isDarkMode
+                                        ? "#FFD700"
+                                        : "#FF9500",
+                                },
                             ]}
                         />
                     )}
                 </View>
             </TouchableOpacity>
         </Swipeable>
+    );
+
+    const FloatingButton = () => (
+        <TouchableOpacity
+            onPress={() => setShowCompleted(!showCompleted)}
+        >
+            <Image
+                        source={showCompleted ? eyeSlash : eye}
+                        style={[
+                            styles.floatingButton,
+                            {
+                                tintColor: isDarkMode
+                                    ? "white"
+                                    : "rgb(7, 20, 35)",
+                            },
+                        ]}
+                    />
+        </TouchableOpacity>
     );
 
     return (
@@ -146,9 +234,7 @@ const ReminderList = (props) => {
                 style={styles.backGround}
             >
                 <View style={styles.lineaVolver}>
-                    <TouchableOpacity
-                        onPress={() => handleNavigation("Start")}
-                    >
+                    <TouchableOpacity onPress={() => handleNavigation("Start")}>
                         <Text
                             style={{
                                 color: isDarkMode ? "#FFFFFF" : "#007AFF",
@@ -172,13 +258,20 @@ const ReminderList = (props) => {
                 </View>
 
                 <View style={styles.lineaTitulo}>
+                    <Image
+                        source={pencil}
+                        style={[
+                            styles.iconoTitulo,
+                            { tintColor: isDarkMode ? "white" : "black" },
+                        ]}
+                    />
                     <Text
                         style={[
                             styles.titulo,
                             { color: isDarkMode ? "#FFFFFF" : "#000" },
                         ]}
                     >
-                        LISTA DE PROPÓSITOS
+                        PROPÓSITOS
                     </Text>
                 </View>
 
@@ -190,8 +283,10 @@ const ReminderList = (props) => {
                         style={[
                             styles.iconoAdd,
                             {
-                                tintColor: isDarkMode ? "rgb(7, 20, 35)" : "white",
-                                backgroundColor: isDarkMode ? "white" : null
+                                tintColor: isDarkMode
+                                    ? "rgb(7, 20, 35)"
+                                    : "white",
+                                backgroundColor: isDarkMode ? "white" : null,
                             },
                         ]}
                     />
@@ -205,6 +300,7 @@ const ReminderList = (props) => {
                         style={styles.listContainer}
                     />
                 </View>
+                <FloatingButton />
             </ImageBackground>
         </View>
     );
@@ -226,6 +322,13 @@ const styles = StyleSheet.create({
         marginTop: 80,
         marginBottom: 20,
     },
+    iconoTitulo: {
+        width: 25,
+        height: 19,
+        marginTop: 80,
+        marginBottom: 20,
+        marginRight: 5,
+    },
     lineaTitulo: {
         flexDirection: "row",
         alignItems: "center",
@@ -244,11 +347,13 @@ const styles = StyleSheet.create({
     lineaVolver: {
         position: "absolute",
         top: 60,
-        left: 10,flexDirection: 'row', alignItems: 'center'
+        left: 10,
+        flexDirection: "row",
+        alignItems: "center",
     },
     reminderItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
+        flexDirection: "row",
+        alignItems: "center",
         borderRadius: 20,
         padding: 15,
         marginVertical: 5,
@@ -263,21 +368,30 @@ const styles = StyleSheet.create({
         height: 24,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: '#007AFF',
+        borderColor: "#007AFF",
         marginRight: 12,
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    checkboxCompleted: {
+        backgroundColor: "#007AFF",
+    },
+    checkmark: {
+        color: "white",
+        fontSize: 16,
     },
     reminderContent: {
         flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
     },
     reminderText: {
         fontSize: 17,
     },
     flagIcon: {
-        width: 20,
-        height: 20,
+        width: 15,
+        height: 15,
     },
     botonEliminar: {
         backgroundColor: "#FF6B6B",
@@ -296,7 +410,7 @@ const styles = StyleSheet.create({
     textoEliminar: {
         color: "white",
         fontSize: 14,
-        marginLeft: 10
+        marginLeft: 10,
     },
     iconoAdd: {
         width: 30,
@@ -320,6 +434,15 @@ const styles = StyleSheet.create({
     listContainer: {
         paddingVertical: 5,
         marginHorizontal: 10,
+    },
+    floatingButton: {
+        position: "absolute",
+        bottom: -360,
+        justifyContent: "center",
+        alignItems: "center",
+        width: 30,
+        height: 19,
+        right: -170,
     },
 });
 
