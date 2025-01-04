@@ -26,40 +26,39 @@ const Phrases = (props) => {
     const { isDarkMode } = useTheme();
     const { favorites, toggleFavorite } = useFavorites();
     const [phrases, setPhrases] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [removingFavorites, setRemovingFavorites] = useState([]);
     const API_BASE_URL = "http://localhost:8080/api/phrases";
 
     const fetchAllPhrases = async () => {
         try {
+            setIsLoading(true);
             const response = await fetch(API_BASE_URL);
             if (!response.ok) {
                 throw new Error("Error al obtener las frases");
             }
             const data = await response.json();
-            return data;
+            setPhrases(data);
         } catch (error) {
             console.error(
                 "Error al cargar todas las frases desde la base de datos:",
                 error
             );
-            return [];
+        } finally {
+            setIsLoading(false);
         }
     };
 
+    // Initial load
     useEffect(() => {
-        const loadPhrases = async () => {
-            const allPhrases = await fetchAllPhrases();
-            setPhrases(allPhrases);
-        };
-        loadPhrases();
+        fetchAllPhrases();
     }, []);
 
+    // Refresh on focus
     useFocusEffect(
         useCallback(() => {
-            const loadPhrases = async () => {
-                const allPhrases = await fetchAllPhrases();
-                setPhrases(allPhrases);
-            };
-            loadPhrases();
+            fetchAllPhrases();
+            return () => {};
         }, [])
     );
 
@@ -70,20 +69,21 @@ const Phrases = (props) => {
 
         try {
             const url = `${API_BASE_URL}/${id}/favorite`;
-            await fetch(url, { method: "POST" });
+            const response = await fetch(url, { method: "POST" });
+            if (!response.ok) {
+                throw new Error("Error al actualizar favorito");
+            }
             toggleFavorite(id);
         } catch (error) {
             console.error("Error al cambiar el estado del favorito:", error);
-        }
-
-        setTimeout(() => {
+        } finally {
             setRemovingFavorites((prev) => prev.filter((item) => item !== id));
-        }, 500);
+        }
     };
 
-    const isFavorite = (id) => {
+    const isFavorite = useCallback((id) => {
         return favorites.includes(id);
-    };
+    }, [favorites]);
 
     return (
         <View style={styles.container}>
@@ -153,54 +153,59 @@ const Phrases = (props) => {
                 </View>
 
                 <View style={styles.card}>
-                    <FlatList
-                        data={phrases}
-                        keyExtractor={(item) => item.id}
-                        renderItem={({ item }) => (
-                            <View
-                                style={[
-                                    styles.fraseContainer,
-                                    {
-                                        backgroundColor: isDarkMode
-                                            ? "rgb(163, 169, 184)"
-                                            : "white",
-                                    },
-                                ]}
-                            >
-                                <Text
+                    {isLoading ? (
+                        <Text style={styles.loadingText}>Cargando frases...</Text>
+                    ) : (
+                        <FlatList
+                            data={phrases}
+                            keyExtractor={(item) => item.id.toString()}
+                            renderItem={({ item }) => (
+                                <View
                                     style={[
-                                        styles.fraseText,
+                                        styles.fraseContainer,
                                         {
-                                            color: isDarkMode
-                                                ? "white"
-                                                : "black",
+                                            backgroundColor: isDarkMode
+                                                ? "rgb(163, 169, 184)"
+                                                : "white",
                                         },
                                     ]}
                                 >
-                                    {item.phrase}
-                                </Text>
-                                <TouchableOpacity
-                                    onPress={() => toggleFavorite(item.id)}
-                                >
-                                    <Image
-                                        source={
-                                            isFavorite(item.id)
-                                                ? star_fill
-                                                : star
-                                        }
+                                    <Text
                                         style={[
-                                            styles.staroflife,
+                                            styles.fraseText,
                                             {
-                                                tintColor: isDarkMode
-                                                    ? "rgb(78, 88, 100)"
-                                                    : "rgb(158, 158, 158)",
+                                                color: isDarkMode
+                                                    ? "white"
+                                                    : "black",
                                             },
                                         ]}
-                                    />
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    />
+                                    >
+                                        {item.phrase}
+                                    </Text>
+                                    <TouchableOpacity
+                                        onPress={() => handleToggleFavorite(item.id)}
+                                        disabled={removingFavorites.includes(item.id)}
+                                    >
+                                        <Image
+                                            source={
+                                                isFavorite(item.id)
+                                                    ? star_fill
+                                                    : star
+                                            }
+                                            style={[
+                                                styles.staroflife,
+                                                {
+                                                    tintColor: isDarkMode
+                                                        ? "rgb(78, 88, 100)"
+                                                        : "rgb(158, 158, 158)",
+                                                },
+                                            ]}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+                        />
+                    )}
                 </View>
             </ImageBackground>
         </View>
@@ -208,6 +213,12 @@ const Phrases = (props) => {
 };
 
 const styles = StyleSheet.create({
+    loadingText: {
+        textAlign: 'center',
+        marginTop: 20,
+        fontSize: 16,
+        color: '#666',
+    },
     container: {
         flex: 1,
     },
@@ -292,7 +303,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         width: "100%",
         position: "absolute",
-        bottom: 50,
+        bottom: 30,
         top: 150,
     },
 });

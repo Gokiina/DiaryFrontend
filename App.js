@@ -2,20 +2,25 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import React from "react";
 
-// PANTALLAS
-import Start from "./components/Screens/Start";
-import Settings from "./components/Screens/Settings";
+/* SCREENS */
 import CalendarEmotions from "./components/Screens/CalendarEmotions";
+import QuickNotes from "./components/Screens/QuickNotes";
+import Settings from "./components/Screens/Settings";
+import Start from "./components/Screens/Start";
+
+// DAILY PAGES
+import DailyEntries from "./components/Screens/DailyPages/DailyEntries";
+import DailyPage from "./components/Screens/DailyPages/DailyPage";
+
+// PHRASES
 import Phrases from "./components/Screens/Phrases/Phrases";
 import PhrasesFavorite from "./components/Screens/Phrases/PhrasesFavorite";
-import DailyEntries from "./components/Screens/DailyPages/DailyEntries";
-import NewDailyPage from "./components/Screens/DailyPages/NewDailyPage";
-import DetailsDailyPage from "./components/Screens/DailyPages/DetailsDailyPage";
+
+// REMINDERS
 import RemindersForm from "./components/Screens/Reminders/RemindersForm";
 import RemindersList from "./components/Screens/Reminders/RemindersList";
-import CustomDatePicker from "./components/Elements/CustomDatePicker";
 
-// CONTEXT
+// CONTEXTS
 import { ThemeProvider } from "./components/Contexts/ThemeContext";
 import { SettingsProvider } from "./components/Contexts/SettingsContext"; 
 import { FavoritesProvider } from "./components/Contexts/FavoritesContext";
@@ -36,15 +41,14 @@ const App = () => (
                 <Stack.Navigator screenOptions={{ headerShown: false }}>
                     <Stack.Screen name="Start" component={Start} />
                     <Stack.Screen name="Settings" component={Settings} />
+                    <Stack.Screen name="QuickNotes" component={QuickNotes} />
                     <Stack.Screen name="CalendarEmotions" component={CalendarEmotions} />
                     <Stack.Screen name="Phrases" component={Phrases} />
                     <Stack.Screen name="PhrasesFavorite" component={PhrasesFavorite} />
                     <Stack.Screen name="DailyEntries" component={DailyEntries} />
-                    <Stack.Screen name="NewDailyPage" component={NewDailyPage} />
-                    <Stack.Screen name="DetailsDailyPage" component={DetailsDailyPage} />
+                    <Stack.Screen name="DailyPage" component={DailyPage} />
                     <Stack.Screen name="RemindersList" component={RemindersList} />
                     <Stack.Screen name="RemindersForm" component={RemindersForm} />
-                    <Stack.Screen name="CustomDatePicker" component={CustomDatePicker} />
                 </Stack.Navigator>
             </NavigationContainer>
         </RemindersProvider>

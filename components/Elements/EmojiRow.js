@@ -48,11 +48,11 @@ const styles = StyleSheet.create({
     emojiTextSelect: {
         marginTop: 10,
         color: "rgb(0, 122, 255)",
-        fontSize: 12,
+        fontSize: 13,
     },
     emojiTextUnS: {
         marginTop: 10,
         color: "white",
-        fontSize: 12,
+        fontSize: 13,
     },
 });

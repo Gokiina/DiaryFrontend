@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useRef, useCallback } from "react";
 import {
     View,
     ImageBackground,
@@ -23,11 +23,35 @@ const book = require("../../../assets/IconosTexto/book.png");
 const DailyEntries = (props) => {
     const { isDarkMode } = useTheme();
     const { entradas, eliminarEntrada } = useContext(DailyContext);
+    
+    // Referencia al swipeable actualmente abierto
+    const openSwipeableRef = useRef(null);
+    // Referencias a todos los swipeables
+    const swipeableRefs = useRef({});
+
+    // Función para cerrar todos los swipeables
+    const closeAllSwipeables = useCallback(() => {
+        Object.values(swipeableRefs.current).forEach(ref => {
+            if (ref && ref.close) {
+                ref.close();
+            }
+        });
+        openSwipeableRef.current = null;
+    }, []);
+
+    // Función para manejar la navegación
+    const handleNavigation = useCallback((route, params = {}) => {
+        closeAllSwipeables();
+        props.navigation.navigate(route, params);
+    }, [props.navigation]);
 
     const renderRightActions = (id) => (
         <TouchableOpacity
             style={styles.botonEliminar}
-            onPress={() => eliminarEntrada(id)}
+            onPress={() => {
+                eliminarEntrada(id);
+                openSwipeableRef.current = null;
+            }}
         >
             <View style={styles.eliminarContainer}>
                 <Image source={trash} style={styles.iconoTrash} />
@@ -36,8 +60,21 @@ const DailyEntries = (props) => {
         </TouchableOpacity>
     );
 
-    const renderItem = ({ item }) => (
-        <Swipeable renderRightActions={() => renderRightActions(item.id)}>
+    const renderItem = ({ item, index }) => (
+        <Swipeable
+            ref={(ref) => {
+                swipeableRefs.current[item.id] = ref;
+            }}
+            renderRightActions={() => renderRightActions(item.id)}
+            rightThreshold={50}
+            onSwipeableWillOpen={() => {
+                // Si hay otro swipeable abierto, ciérralo
+                if (openSwipeableRef.current && openSwipeableRef.current !== swipeableRefs.current[item.id]) {
+                    openSwipeableRef.current.close();
+                }
+                openSwipeableRef.current = swipeableRefs.current[item.id];
+            }}
+        >
             <TouchableOpacity
                 style={[
                     styles.entrada,
@@ -47,11 +84,7 @@ const DailyEntries = (props) => {
                             : "rgba(255, 255, 255, 0.9)",
                     },
                 ]}
-                onPress={() =>
-                    props.navigation.navigate("DetailsDailyPage", {
-                        entrada: item,
-                    })
-                }
+                onPress={() => handleNavigation("DailyPage", { entrada: item })}
             >
                 <View style={styles.fechaHoraContainer}>
                     <Text
@@ -121,7 +154,7 @@ const DailyEntries = (props) => {
             >
                 <View style={styles.lineaVolver}>
                     <TouchableOpacity
-                        onPress={() => props.navigation.navigate("Start")}
+                        onPress={() => handleNavigation("Start")}
                     >
                         <Text
                             style={{
@@ -163,13 +196,13 @@ const DailyEntries = (props) => {
                     </Text>
                 </View>
                 <TouchableOpacity
-                    onPress={() => props.navigation.navigate("NewDailyPage")}
+                    onPress={() => handleNavigation("DailyPage")}
                 >
                     <Image
                         source={plusCircle2}
                         style={[
                             styles.iconoAdd,
-                            { tintColor: isDarkMode ? "black" : "white" },
+                            { tintColor: isDarkMode ? "rgb(7, 20, 35)" : "white", backgroundColor: isDarkMode ? "white" : null },
                         ]}
                     />
                 </TouchableOpacity>
@@ -221,10 +254,10 @@ const styles = StyleSheet.create({
     },
     card: {
         borderRadius: 10,
-        width: "98%",
+        width: "100%",
         position: "absolute",
-        bottom: 50,
-        top: 120,
+        bottom: 30,
+        top: 150,
         paddingHorizontal: 10,
     },
     lineaVolver: {
@@ -261,20 +294,26 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     botonEliminar: {
-        backgroundColor: "red",
+        backgroundColor: "#FF6B6B",
         justifyContent: "center",
         alignItems: "center",
-        width: 80,
+        width: 105,
         borderRadius: 20,
         marginVertical: 5,
+    },eliminarContainer: {
+        flexDirection: "row", // Coloca los elementos en fila
+        alignItems: "center", // Alinea verticalmente
+        justifyContent: "center", // Centra horizontalmente
+        width: "100%", // Asegura que ocupe todo el espacio del botón
     },
     textoEliminar: {
         color: "white",
         fontSize: 14,
+        marginLeft: 10
     },
     iconoAdd: {
-        width: 25,
-        height: 25,
+        width: 30,
+        height: 30,
         top: -330,
         right: -150,
         shadowOpacity: 0.5,
@@ -292,8 +331,8 @@ const styles = StyleSheet.create({
         tintColor: "white",
     },
     fraseContainer: {
-        paddingVertical: 30,
-        marginHorizontal: 5,
+        paddingVertical: 5,
+        marginHorizontal: 10,
     },
 });
 

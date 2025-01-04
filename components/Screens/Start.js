@@ -98,7 +98,9 @@ const Start = (props) => {
             >
                 <TouchableOpacity
                     style={styles.iconNotes}
-                    onPress={() => alert("Botón notas presionado!")}
+                    onPress={() =>
+                        props.navigation.navigate("QuickNotes")
+                    }
                 >
                     <Image source={iconNotes} style={styles.iconStyle} />
                 </TouchableOpacity>
@@ -169,7 +171,7 @@ const Start = (props) => {
                                 {
                                     color: isDarkMode
                                         ? "white"
-                                        : "rgb(153, 153, 153)",
+                                        : "rgba(27, 31, 38, 0.6)",
                                 },
                             ]}
                         >
@@ -239,7 +241,7 @@ const Start = (props) => {
                             {
                                 color: isDarkMode
                                     ? "white"
-                                    : "rgb(153, 153, 153)",
+                                    : "rgba(27, 31, 38, 0.6)",
                             },
                         ]}
                     >
