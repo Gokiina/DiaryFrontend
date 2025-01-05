@@ -50,7 +50,10 @@ const ReminderList = (props) => {
     const handleNavigation = useCallback(
         (route, params = {}) => {
             closeAllSwipeables();
-            props.navigation.navigate(route, params);
+            props.navigation.navigate(route, {
+                ...params,
+                onSave: fetchReminders // Añadimos el callback
+            });
         },
         [props.navigation]
     );
@@ -198,8 +201,8 @@ const ReminderList = (props) => {
                                 styles.flagIcon,
                                 {
                                     tintColor: isDarkMode
-                                        ? "#FFD700"
-                                        : "#FF9500",
+                                        ? "rgb(6, 48, 103)"
+                                        : "#007AFF",
                                 },
                             ]}
                         />
@@ -368,13 +371,13 @@ const styles = StyleSheet.create({
         height: 24,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: "#007AFF",
+        borderColor: "rgb(179, 179, 179)",
         marginRight: 12,
         justifyContent: "center",
         alignItems: "center",
     },
     checkboxCompleted: {
-        backgroundColor: "#007AFF",
+        backgroundColor: "rgb(179, 179, 179)",
     },
     checkmark: {
         color: "white",

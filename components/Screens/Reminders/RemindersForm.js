@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import {
     View,
     Text,
@@ -11,11 +11,10 @@ import {
     Image,
     Linking,
     ScrollView,
+    Modal,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useTheme } from "../../Contexts/ThemeContext";
-
-const URL_REMINDERS = "http://localhost:8080/api/reminders";
 
 // Importar imágenes
 const backGround = require("../../../assets/Imag/Wallpaper/Wallpaper.jpg");
@@ -33,44 +32,89 @@ const ReminderForm = ({ navigation, route }) => {
         title: reminderToEdit?.title || "",
         notes: reminderToEdit?.notes || "",
         url: reminderToEdit?.url || "",
-        date: reminderToEdit?.date
-            ? `${new Date(reminderToEdit.date)
-                  .getDate()
-                  .toString()
-                  .padStart(2, "0")}/${(
-                  new Date(reminderToEdit.date).getMonth() + 1
-              )
-                  .toString()
-                  .padStart(2, "0")}/${new Date(
-                  reminderToEdit.date
-              ).getFullYear()}`
-            : null,
+        date: reminderToEdit?.date || null,
         time: reminderToEdit?.time || null,
         flagged: reminderToEdit?.flagged || false,
     });
+    const URL_REMINDERS = formData.id
+        ? `http://localhost:8080/api/reminders/${formData.id}`
+        : "http://localhost:8080/api/reminders";
+    const formatDisplayDate = (dateString) => {
+        if (!dateString) return "Sin fecha";
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) throw new Error("Invalid date");
+            return date.toLocaleDateString("es-ES", {
+                day: "2-digit",
+                month: "long",
+                year: "numeric",
+            });
+        } catch (error) {
+            console.error("Error formatting date:", error);
+            return "Fecha inválida";
+        }
+    };
 
+    const formatDisplayTime = (timeString) => {
+        if (!timeString) return "Sin hora";
+        try {
+            const [hours, minutes] = timeString.split(":");
+            const date = new Date();
+            date.setHours(parseInt(hours), parseInt(minutes));
+            
+            // Aseguramos formato 12h específico para español
+            return date.toLocaleTimeString("es", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true
+            }).toLowerCase();
+        } catch (error) {
+            return "Sin hora";
+        }
+    };
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
+    const [titleError, setTitleError] = useState(false);
 
+    const [tempDate, setTempDate] = useState(
+        formData.date ? new Date(formData.date) : new Date()
+    );
+    const [tempTime, setTempTime] = useState(
+        formData.time ? new Date(`2000-01-01T${formData.time}`) : new Date()
+    );
+
+    const handleShowDatePicker = () => {
+        setShowTimePicker(false);
+        setShowDatePicker(true);
+    };
+
+    const handleShowTimePicker = () => {
+        setShowDatePicker(false);
+        setShowTimePicker(true);
+    };
     const handleSave = async () => {
-        try {
-            // Convertir la fecha a formato YYYY-MM-DD
-            const [day, month, year] = formData.date.split("/");
-            const isoDate = `${year}-${month}-${day}`;
+        if (!formData.title.trim()) {
+            setTitleError(true);
+            return;
+        }
+        setTitleError(false);
 
+        try {
             const reminderData = {
-                ...formData,
-                date: isoDate, // Asegúrate de que el backend espera este formato
+                id: formData.id,
+                title: formData.title.trim(),
+                notes: formData.notes?.trim() || "",
+                url: formData.url?.trim() || "",
+                date: formData.date || null,
                 time: formData.time || null,
+                flagged: Boolean(formData.flagged),
+                completed: false,
             };
 
-            const method = reminderToEdit ? "PUT" : "POST";
-            const url = reminderToEdit
-                ? `${URL_REMINDERS}/${reminderToEdit.id}`
-                : URL_REMINDERS;
+            console.log("Enviando datos a MongoDB:", reminderData);
 
-            const response = await fetch(url, {
-                method,
+            const response = await fetch(URL_REMINDERS, {
+                method: formData.id ? "PUT" : "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -78,12 +122,27 @@ const ReminderForm = ({ navigation, route }) => {
             });
 
             if (!response.ok) {
-                throw new Error("Error al guardar el recordatorio");
+                const errorData = await response.json();
+                throw new Error(
+                    errorData.message || "Error al guardar el recordatorio"
+                );
+            }
+
+            const responseData = await response.json();
+            console.log("Respuesta del servidor:", responseData);
+
+            // Actualiza la lista si existe el callback
+            if (route?.params?.onSave) {
+                route.params.onSave();
             }
 
             navigation.goBack();
         } catch (error) {
-            console.error("Error:", error);
+            console.error("Error detallado:", error);
+            Alert.alert(
+                "Error",
+                `No se pudo guardar el recordatorio: ${error.message}`
+            );
         }
     };
 
@@ -99,48 +158,121 @@ const ReminderForm = ({ navigation, route }) => {
             }
         }
     };
-    const handleDatePress = () => {
-        if (Platform.OS === "ios") {
-            setShowDatePicker(true);
-        } else {
-            setShowDatePicker(true);
-        }
-    };
 
-    const handleTimePress = () => {
-        if (Platform.OS === "ios") {
-            setShowTimePicker(true);
-        } else {
-            setShowTimePicker(true);
-        }
-    };
     const onDateChange = (event, selectedDate) => {
-        setShowDatePicker(false);
-        if (selectedDate) {
-            const formattedDate = `${selectedDate
-                .getDate()
-                .toString()
-                .padStart(2, "0")}/${(selectedDate.getMonth() + 1)
-                .toString()
-                .padStart(2, "0")}/${selectedDate.getFullYear()}`;
-            setFormData((prev) => ({ ...prev, date: formattedDate }));
-        }
+        const currentDate = selectedDate || tempDate;
+        setTempDate(currentDate);
     };
 
     const onTimeChange = (event, selectedTime) => {
-        setShowTimePicker(false);
-        if (selectedTime) {
-            const formattedTime = `${selectedTime
-                .getHours()
-                .toString()
-                .padStart(2, "0")}:${selectedTime
-                .getMinutes()
-                .toString()
-                .padStart(2, "0")}`;
-            setFormData((prev) => ({ ...prev, time: formattedTime }));
-        }
+        const currentTime = selectedTime || tempTime;
+        setTempTime(currentTime);
     };
+    const handleDateConfirm = () => {
+        const formattedDate = tempDate.toISOString().split("T")[0]; // Esto ya da el formato YYYY-MM-DD
+        setFormData((prev) => ({ ...prev, date: formattedDate }));
+        setShowDatePicker(false);
+    };
+    const handleTimeConfirm = () => {
+        // Convertimos a formato 24h para almacenamiento
+        const hours = tempTime.getHours();
+        const minutes = tempTime.getMinutes();
+        const formattedTime = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+        setFormData((prev) => ({ ...prev, time: formattedTime }));
+        setShowTimePicker(false);
+    };
+    const renderDatePicker = () => (
+        <Modal
+            animationType="slide"
+            transparent={true}
+            visible={showDatePicker}
+            onRequestClose={() => setShowDatePicker(false)}
+        >
+            <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowDatePicker(false)}
+            >
+                <View style={styles.pickerModal}>
+                    <View style={styles.pickerHeader}>
+                        <TouchableOpacity
+                            style={styles.pickerButton}
+                            onPress={() => setShowDatePicker(false)}
+                        >
+                            <Text style={styles.pickerButtonText}>
+                                Cancelar
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.pickerButton}
+                            onPress={handleDateConfirm}
+                        >
+                            <Text style={styles.pickerButtonText}>Aceptar</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={styles.pickerContent}>
+                        <DateTimePicker
+                            value={tempDate}
+                            mode="date"
+                            display={
+                                Platform.OS === "ios" ? "spinner" : "default"
+                            }
+                            onChange={onDateChange}
+                            is24Hour={false}
+                            locale="es-ES"
+                            textColor="black"
+                        />
+                    </View>
+                </View>
+            </TouchableOpacity>
+        </Modal>
+    );
 
+    const renderTimePicker = () => (
+        <Modal
+            animationType="slide"
+            transparent={true}
+            visible={showTimePicker}
+            onRequestClose={() => setShowTimePicker(false)}
+        >
+            <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setShowTimePicker(false)}
+            >
+                <View style={styles.pickerModal}>
+                    <View style={styles.pickerHeader}>
+                        <TouchableOpacity
+                            style={styles.pickerButton}
+                            onPress={() => setShowTimePicker(false)}
+                        >
+                            <Text style={styles.pickerButtonText}>
+                                Cancelar
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.pickerButton}
+                            onPress={handleTimeConfirm}
+                        >
+                            <Text style={styles.pickerButtonText}>Aceptar</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <View style={styles.pickerContent}>
+                        <DateTimePicker
+                            value={tempTime}
+                            mode="time"
+                            display="spinner"
+                            onChange={onTimeChange}
+                            is24Hour={false} // Forzamos formato 12h
+                            locale="en-US"
+                            textColor="black"
+                            
+                        />
+                    </View>
+                </View>
+            </TouchableOpacity>
+        </Modal>
+    );
     return (
         <View style={styles.container}>
             <ImageBackground
@@ -199,25 +331,38 @@ const ReminderForm = ({ navigation, route }) => {
                             },
                         ]}
                     >
-                        <TextInput
+                        <View
                             style={[
-                                styles.titleInput,
-                                { color: isDarkMode ? "white" : "#000" },
+                                styles.inputContainer,
+                                titleError && styles.errorContainer,
                             ]}
-                            value={formData.title}
-                            onChangeText={(text) =>
-                                setFormData((prev) => ({
-                                    ...prev,
-                                    title: text,
-                                }))
-                            }
-                            placeholder="Tomar 2l de agua"
-                            placeholderTextColor={
-                                isDarkMode
-                                    ? "#rgba(255, 255, 255, 0.6)"
-                                    : "#999"
-                            }
-                        />
+                        >
+                            <TextInput
+                                style={[
+                                    styles.titleInput,
+                                    { color: isDarkMode ? "white" : "#000" },
+                                ]}
+                                value={formData.title}
+                                onChangeText={(text) => {
+                                    setTitleError(false);
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        title: text,
+                                    }));
+                                }}
+                                placeholder="Tomar 2l de agua"
+                                placeholderTextColor={
+                                    isDarkMode
+                                        ? "rgba(255, 255, 255, 0.6)"
+                                        : "#999"
+                                }
+                            />
+                        </View>
+                        {titleError && (
+                            <Text style={styles.errorText}>
+                                El título es obligatorio
+                            </Text>
+                        )}
                         <View style={styles.separator} />
 
                         <TextInput
@@ -234,9 +379,7 @@ const ReminderForm = ({ navigation, route }) => {
                             }
                             placeholder="Notas"
                             placeholderTextColor={
-                                isDarkMode
-                                    ? "#rgba(255, 255, 255, 0.6)"
-                                    : "#999"
+                                isDarkMode ? "rgba(255, 255, 255, 0.6)" : "#999"
                             }
                             multiline
                         />
@@ -262,7 +405,7 @@ const ReminderForm = ({ navigation, route }) => {
                                 placeholder="URL"
                                 placeholderTextColor={
                                     isDarkMode
-                                        ? "#rgba(255, 255, 255, 0.6)"
+                                        ? "rgba(255, 255, 255, 0.6)"
                                         : "#999"
                                 }
                             />
@@ -281,7 +424,7 @@ const ReminderForm = ({ navigation, route }) => {
                     >
                         <TouchableOpacity
                             style={styles.optionRow}
-                            onPress={() => setShowDatePicker(true)}
+                            onPress={handleShowDatePicker}
                         >
                             <View style={styles.optionLeft}>
                                 <Image
@@ -311,15 +454,13 @@ const ReminderForm = ({ navigation, route }) => {
                                     },
                                 ]}
                             >
-                                {formData.date || "Sin fecha"}
+                                {formatDisplayDate(formData.date)}
                             </Text>
                         </TouchableOpacity>
 
-                        <View style={styles.separator} />
-
                         <TouchableOpacity
                             style={styles.optionRow}
-                            onPress={() => setShowTimePicker(true)}
+                            onPress={handleShowTimePicker}
                         >
                             <View style={styles.optionLeft}>
                                 <Image
@@ -349,7 +490,7 @@ const ReminderForm = ({ navigation, route }) => {
                                     },
                                 ]}
                             >
-                                {formData.time || "Sin hora"}
+                                {formatDisplayTime(formData.time)}
                             </Text>
                         </TouchableOpacity>
 
@@ -392,41 +533,8 @@ const ReminderForm = ({ navigation, route }) => {
                     </View>
                 </ScrollView>
 
-                {showDatePicker && (
-                    <View style={styles.datePickerContainer}>
-                        <DateTimePicker
-                            value={
-                                formData.date
-                                    ? new Date(
-                                          `${formData.date
-                                              .split("/")
-                                              .reverse()
-                                              .join("-")}T00:00:00`
-                                      )
-                                    : new Date()
-                            }
-                            mode="date"
-                            display="spinner" // Spinner estilo iOS
-                            onChange={onDateChange}
-                        />
-                    </View>
-                )}
-
-                {showTimePicker && (
-                    <View style={styles.timePickerContainer}>
-                        <DateTimePicker
-                            value={
-                                formData.time
-                                    ? new Date(`2000-01-01T${formData.time}`)
-                                    : new Date()
-                            }
-                            mode="time"
-                            display="spinner" // Spinner estilo iOS
-                            onChange={onTimeChange}
-                            is24Hour={true} // Forzar formato 24 horas
-                        />
-                    </View>
-                )}
+                {renderDatePicker()}
+                {renderTimePicker()}
             </ImageBackground>
         </View>
     );
@@ -484,8 +592,10 @@ const styles = StyleSheet.create({
     },
     titleInput: {
         fontSize: 17,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        padding: 16,
+        borderRadius: 20,
+        marginVertical: 1,
+        backgroundColor: "transparent",
     },
     notesInput: {
         fontSize: 17,
@@ -538,6 +648,79 @@ const styles = StyleSheet.create({
     },
     datePicker: {
         width: "100%",
+    },
+    errorText: {
+        color: "red",
+        fontSize: 12,
+        marginTop: -10,
+        marginBottom: 10,
+        marginLeft: 17,
+    },
+    pickerHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between", // Botones en las esquinas
+        alignItems: "center",
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: "#e5e5e5",
+    },
+    datePickerContainer: {
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: "white",
+        borderTopLeftRadius: 15,
+        borderTopRightRadius: 15,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: -2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    timePickerContainer: {
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingHorizontal: 15,
+        paddingVertical: 8,
+        backgroundColor: "white",
+        justifyContent: "center",
+        alignItems: "center",
+    },
+    titleError: {
+        backgroundColor: "rgba(255, 0, 0, 0.1)",
+        borderRadius: 20,
+        padding: 2,
+        marginTop: 5,
+    },
+    pickerButton: {
+        padding: 5,
+    },
+    pickerButtonText: {
+        fontSize: 16,
+        color: "#007AFF",
+    },
+    pickerContent: {
+        padding: 15,
+        color: "black",
+        justifyContent: "center", // Centrar contenido verticalmente
+        alignItems: "center",
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: "flex-end", // Esto posiciona el contenido en la parte inferior
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    pickerModal: {
+        backgroundColor: "#fff",
+        borderTopLeftRadius: 15,
+        borderTopRightRadius: 15,
+        paddingBottom: Platform.OS === "ios" ? 20 : 0,
     },
 });
 

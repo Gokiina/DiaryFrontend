@@ -279,6 +279,7 @@ const Settings = (props) => {
                                             display={Platform.OS === "ios" ? "spinner" : "default"}
                                             themeVariant="light"
                                             onChange={onTimeChange}
+                                            is24Hour={false}
                                         />
                                         <TouchableOpacity
                                             style={styles.closeButton}
