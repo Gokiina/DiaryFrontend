@@ -280,6 +280,7 @@ const Settings = (props) => {
                                             themeVariant="light"
                                             onChange={onTimeChange}
                                             is24Hour={false}
+                                            locale="en-US"
                                         />
                                         <TouchableOpacity
                                             style={styles.closeButton}
