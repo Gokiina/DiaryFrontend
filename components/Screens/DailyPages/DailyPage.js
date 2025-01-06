@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useCallback } from "react";
 import {
     View,
     Text,
@@ -10,80 +10,109 @@ import {
     TouchableWithoutFeedback,
     Keyboard,
     Platform,
+    Alert
 } from "react-native";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { DailyContext } from "../../Contexts/DailyContext";
 import LinedTextInput from "../../Elements/LinedTextInput";
-import { Alert } from "react-native";
 
-const backGround = require("../../../assets/Imag/Wallpaper/Wallpaper.jpg");
-const backGroundBlack = require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
-const circleFill = require("../../../assets/IconosTexto/circleFill.png");
+const API_URL = "http://localhost:8080/api/diary";
 
-const URL_DAILY = "http://localhost:8080/api/diary";
+const ASSETS = {
+    backgrounds: {
+        light: require("../../../assets/Imag/Wallpaper/Wallpaper.jpg"),
+        dark: require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg")
+    },
+    icons: {
+        circleFill: require("../../../assets/IconosTexto/circleFill.png")
+    }
+};
 
-const DailyPage = (props) => {
+const formatDate = (date) => {
+    const d = new Date(date);
+    return `${d.getDate().toString().padStart(2, "0")}.${(d.getMonth() + 1).toString().padStart(2, "0")}.${d.getFullYear()}`;
+};
+
+const dailyService = {
+    async createEntry(entry) {
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(entry)
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to save entry");
+        }
+
+        return response.json();
+    }
+};
+
+const SaveButton = ({ onPress, isDarkMode }) => (
+    <TouchableOpacity style={styles.iconoAdd} onPress={onPress}>
+        <Image
+            source={ASSETS.icons.circleFill}
+            style={[
+                styles.iconoAdd,
+                {
+                    tintColor: isDarkMode ? "rgb(239, 239, 239)" : "white"
+                }
+            ]}
+        />
+    </TouchableOpacity>
+);
+
+const DailyPage = ({ navigation, route }) => {
     const { isDarkMode } = useTheme();
     const { agregarEntrada, actualizarEntrada } = useContext(DailyContext);
     
-    // Verificar si estamos editando una entrada existente
-    const isEditing = props.route.params?.entrada;
-    const initialEntry = isEditing ? props.route.params.entrada : null;
+    const initialEntry = route.params?.entrada;
+    const isEditing = !!initialEntry;
     
     const [text, setText] = useState(initialEntry?.content || "");
     const [fecha] = useState(initialEntry?.date ? new Date(initialEntry.date) : new Date());
 
-    const formattedDate = initialEntry
-        ? `${initialEntry.date.split("T")[0].split("-").reverse().join(".")}`
-        : `${fecha.getDate().toString().padStart(2, "0")}.${(
-              fecha.getMonth() + 1
-          ).toString().padStart(2, "0")}.${fecha.getFullYear()}`;
+    const handleTextChange = useCallback((newText) => {
+        setText(newText);
+    }, []);
 
-    const saveEntry = async () => {
-        if (text.trim() === "") {
-            props.navigation.goBack();
+    const saveEntry = useCallback(async () => {
+        if (!text.trim()) {
+            navigation.goBack();
             return;
         }
 
-        if (isEditing) {
-            // Actualizar entrada existente
-            const nuevaEntrada = {
-                ...initialEntry,
-                content: text,
-            };
-            actualizarEntrada(nuevaEntrada);
-            props.navigation.goBack();
-        } else {
-            // Crear nueva entrada
-            const nuevaPagina = {
-                date: new Date().toISOString(),
-                content: text,
-            };
-            
-            try {
-                const response = await fetch(URL_DAILY, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(nuevaPagina),
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log("Página de diario guardada con éxito:", data);
-                    agregarEntrada(data);
-                    props.navigation.goBack();
-                } else {
-                    console.error("Error al guardar la página:", response.statusText);
-                    alert("Hubo un problema al guardar la página. Inténtalo de nuevo.");
-                }
-            } catch (error) {
-                console.error("Error al conectar con el servidor:", error);
-                alert("Error de conexión. Verifica que el servidor esté en funcionamiento.");
+        try {
+            if (isEditing) {
+                const updatedEntry = {
+                    ...initialEntry,
+                    content: text
+                };
+                actualizarEntrada(updatedEntry);
+            } else {
+                const newEntry = {
+                    date: new Date().toISOString(),
+                    content: text
+                };
+                
+                const savedEntry = await dailyService.createEntry(newEntry);
+                agregarEntrada(savedEntry);
             }
+            navigation.goBack();
+        } catch (error) {
+            console.error("Error saving entry:", error);
+            Alert.alert(
+                "Error",
+                isEditing 
+                    ? "No se pudo actualizar la entrada. Por favor, inténtalo de nuevo."
+                    : "No se pudo guardar la entrada. Por favor, verifica tu conexión e inténtalo de nuevo.",
+                [{ text: "OK" }]
+            );
         }
-    };
+    }, [text, isEditing, initialEntry, navigation, actualizarEntrada, agregarEntrada]);
 
     return (
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -97,42 +126,30 @@ const DailyPage = (props) => {
                         {
                             backgroundColor: isDarkMode
                                 ? "rgb(204, 204, 204)"
-                                : "white",
-                        },
+                                : "white"
+                        }
                     ]}
                 >
                     <Text style={styles.fecha}>
-                        {formattedDate}
+                        {initialEntry 
+                            ? formatDate(initialEntry.date)
+                            : formatDate(fecha)
+                        }
                     </Text>
 
                     <LinedTextInput
                         isDarkMode={isDarkMode}
-                        multiline={true}
+                        multiline
                         placeholder="Escribe tu entrada aquí..."
                         placeholderTextColor="#888"
-                        onChangeText={(newText) => {
-                            console.log("Texto actualizado:", newText);
-                            setText(newText);
-                        }}
+                        onChangeText={handleTextChange}
                         value={text}
                     />
 
-                    <TouchableOpacity
-                        style={styles.iconoAdd}
+                    <SaveButton 
                         onPress={saveEntry}
-                    >
-                        <Image
-                            source={circleFill}
-                            style={[
-                                styles.iconoAdd,
-                                {
-                                    tintColor: isDarkMode
-                                        ? "rgb(239, 239, 239)"
-                                        : "white",
-                                },
-                            ]}
-                        />
-                    </TouchableOpacity>
+                        isDarkMode={isDarkMode}
+                    />
                 </ImageBackground>
             </KeyboardAvoidingView>
         </TouchableWithoutFeedback>
@@ -166,7 +183,7 @@ const styles = StyleSheet.create({
         shadowRadius: 5,
         borderRadius: 20,
         shadowOffset: { width: 0, height: 2 },
-    },
+    }
 });
 
 export default DailyPage;

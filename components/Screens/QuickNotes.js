@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
     View,
     ImageBackground,
@@ -9,211 +9,216 @@ import {
     TextInput,
     Dimensions,
     FlatList,
+    Alert,
+    Linking
 } from "react-native";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
-import { Linking } from "react-native";
-import { Alert } from "react-native";
-
-// Wallpaper - Replace with your actual wallpaper assets
-const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
-const backGroundBlack = require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
-
-// Icons - Replace with your actual icon assets
-const flecha = require("../../assets/IconosTexto/flecha.png");
-const plus = require("../../assets/IconosTexto/plusCircle2.png");
-const trash = require("../../assets/IconosTexto/trash.png");
-
-const iconList = require("../../assets/Imag/Iconos/List.png");
-const iconDaily = require("../../assets/Imag/Iconos/Daily.png");
-const iconCalendar = require("../../assets/Imag/Iconos/Calendar.png");
 
 const { width } = Dimensions.get("window");
+const API_BASE_URL = "http://localhost:8080/api/notes";
 
-const QuickNotes = (props) => {
+const ASSETS = {
+    backgrounds: {
+        light: require("../../assets/Imag/Wallpaper/Wallpaper.jpg"),
+        dark: require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg")
+    },
+    icons: {
+        arrow: require("../../assets/IconosTexto/flecha.png"),
+        plus: require("../../assets/IconosTexto/plusCircle2.png"),
+        trash: require("../../assets/IconosTexto/trash.png"),
+        list: require("../../assets/Imag/Iconos/List.png"),
+        daily: require("../../assets/Imag/Iconos/Daily.png"),
+        calendar: require("../../assets/Imag/Iconos/Calendar.png")
+    }
+};
+
+const noteService = {
+    async fetchNotes() {
+        const response = await fetch(API_BASE_URL);
+        if (!response.ok) throw new Error("Failed to fetch notes");
+        const data = await response.json();
+        return data.map(note => ({ ...note, textNote: note.textNote || "" }));
+    },
+
+    async createNote() {
+        const response = await fetch(API_BASE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ textNote: "" })
+        });
+        if (!response.ok) throw new Error("Failed to create note");
+        return response.json();
+    },
+
+    async updateNote(id, content) {
+        const response = await fetch(`${API_BASE_URL}/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id, textNote: content })
+        });
+        if (!response.ok) throw new Error("Failed to update note");
+    },
+
+    async deleteNote(id) {
+        const response = await fetch(`${API_BASE_URL}/${id}`, {
+            method: "DELETE"
+        });
+        if (!response.ok) throw new Error("Failed to delete note");
+    }
+};
+
+const PaginationDots = ({ currentIndex, totalDots, isDarkMode }) => (
+    <View style={styles.paginationContainer}>
+        {Array.from({ length: totalDots }).map((_, index) => (
+            <View
+                key={index}
+                style={[
+                    styles.paginationDot,
+                    {
+                        backgroundColor: currentIndex === index
+                            ? isDarkMode ? "white" : "black"
+                            : "#D3D3D3"
+                    }
+                ]}
+            />
+        ))}
+    </View>
+);
+
+const NoteCard = ({ note, onUpdate, onDelete, isDarkMode }) => (
+    <View style={styles.noteWrapper}>
+        <View style={styles.noteCard}>
+            <TextInput
+                style={styles.noteText}
+                multiline
+                value={note.textNote}
+                onChangeText={(text) => onUpdate(note.id, text)}
+                placeholder="Tareas de clase..."
+                placeholderTextColor="#666"
+            />
+        </View>
+        <TouchableOpacity
+            style={[styles.deleteButton, {
+                backgroundColor: isDarkMode ? "#FF6B6B" : "white"
+            }]}
+            onPress={() => onDelete(note.id)}
+        >
+            <Image
+                source={ASSETS.icons.trash}
+                style={[styles.iconoTrash, {
+                    tintColor: isDarkMode ? "white" : "#FF6B6B"
+                }]}
+            />
+            <Text style={[styles.deleteButtonText, {
+                color: isDarkMode ? "white" : "#FF6B6B"
+            }]}>
+                Eliminar
+            </Text>
+        </TouchableOpacity>
+    </View>
+);
+
+const Dock = ({ navigation }) => (
+    <View style={styles.dock}>
+        <TouchableOpacity onPress={() => navigation.navigate("RemindersList")}>
+            <Image source={ASSETS.icons.list} style={styles.iconStyle} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("DailyEntries")}>
+            <Image source={ASSETS.icons.daily} style={styles.iconStyle} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => Linking.openURL("calshow://")}>
+            <Image source={ASSETS.icons.calendar} style={styles.iconStyle} />
+        </TouchableOpacity>
+    </View>
+);
+
+const QuickNotes = ({ navigation }) => {
     const { isDarkMode } = useTheme();
     const [notes, setNotes] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentIndex, setCurrentIndex] = useState(0);
     const flatListRef = useRef(null);
-    const API_BASE_URL = "http://localhost:8080/api/notes";
-    const [isAddingNote, setIsAddingNote] = useState(false);
 
-    const openCalendar = () => {
-        Linking.openURL("calshow://");
-    };
-
-    const hasEmptyNotes = useCallback(() => {
-        return notes.some(
-            (note) => !note.textNote || note.textNote.trim() === ""
-        );
-    }, [notes]);
-
-    const fetchAllNotes = async () => {
+    const fetchNotes = useCallback(async () => {
         try {
             setIsLoading(true);
-            const response = await fetch(API_BASE_URL);
-            if (!response.ok) {
-                throw new Error("Error al obtener las notas");
-            }
-            const data = await response.json();
-            const formattedData = data.map((note) => ({
-                ...note,
-                textNote: note.textNote || "",
-            }));
-            setNotes(formattedData);
+            const fetchedNotes = await noteService.fetchNotes();
+            setNotes(fetchedNotes);
         } catch (error) {
-            console.error("Error al cargar las notas:", error);
+            console.error("Error fetching notes:", error);
         } finally {
             setIsLoading(false);
         }
-    };
-
-    useEffect(() => {
-        fetchAllNotes();
     }, []);
 
-    useFocusEffect(
-        useCallback(() => {
-            fetchAllNotes();
-            return () => {};
-        }, [])
-    );
+    useFocusEffect(useCallback(() => {
+        fetchNotes();
+    }, []));
 
-    const handleAddNote = async () => {
-        if (hasEmptyNotes()) {
-            Alert.alert(
-                "Nota vacía",
-                "Por favor complete la nota actual antes de crear una nueva.",
-                [{ text: "OK" }]
-            );
+    const handleAddNote = useCallback(async () => {
+        if (notes.some(note => !note.textNote?.trim())) {
+            Alert.alert("Nota vacía", "Por favor complete la nota actual antes de crear una nueva.");
             return;
         }
 
-        setIsAddingNote(true);
         try {
-            const response = await fetch(API_BASE_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    textNote: "",
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error("Error al crear la nota");
-            }
-
-            const newNote = await response.json();
-            await fetchAllNotes();
-
+            await noteService.createNote();
+            await fetchNotes();
             setTimeout(() => {
-                if (flatListRef.current) {
-                    flatListRef.current.scrollToEnd({ animated: true });
-                }
+                flatListRef.current?.scrollToEnd({ animated: true });
             }, 100);
         } catch (error) {
-            console.error("Error al crear la nota:", error);
-        } finally {
-            setIsAddingNote(false);
+            console.error("Error creating note:", error);
         }
-    };
+    }, [notes, fetchNotes]);
 
-    const handleDeleteNote = async (id) => {
+    const handleUpdateNote = useCallback(async (id, content) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/${id}`, {
-                method: "DELETE",
-            });
-            if (!response.ok) {
-                throw new Error("Error al eliminar la nota");
-            }
-            await fetchAllNotes();
+            await noteService.updateNote(id, content);
+            setNotes(prev => prev.map(note =>
+                note.id === id ? { ...note, textNote: content } : note
+            ));
         } catch (error) {
-            console.error("Error al eliminar la nota:", error);
+            console.error("Error updating note:", error);
         }
-    };
+    }, []);
 
-    const handleUpdateNote = async (id, content) => {
+    const handleDeleteNote = useCallback(async (id) => {
         try {
-            const response = await fetch(`${API_BASE_URL}/${id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    id: id,
-                    textNote: content,
-                }),
-            });
-            if (!response.ok) {
-                throw new Error("Error al actualizar la nota");
-            }
-
-            setNotes((prevNotes) =>
-                prevNotes.map((note) =>
-                    note.id === id ? { ...note, textNote: content } : note
-                )
-            );
+            await noteService.deleteNote(id);
+            await fetchNotes();
         } catch (error) {
-            console.error("Error al actualizar la nota:", error);
+            console.error("Error deleting note:", error);
         }
-    };
+    }, [fetchNotes]);
 
-    const handleScroll = (event) => {
+    const handleScroll = useCallback((event) => {
         const contentOffset = event.nativeEvent.contentOffset.x;
-        const index = Math.round(contentOffset / width);
-        setCurrentIndex(index);
-    };
-
-    const renderPaginationDots = () => {
-        return (
-            <View style={styles.paginationContainer}>
-                {notes.map((_, index) => (
-                    <View
-                        key={index}
-                        style={[
-                            styles.paginationDot,
-                            {
-                                backgroundColor:
-                                    currentIndex === index
-                                        ? isDarkMode
-                                            ? "white"
-                                            : "black"
-                                        : "#D3D3D3",
-                            },
-                        ]}
-                    />
-                ))}
-            </View>
-        );
-    };
+        setCurrentIndex(Math.round(contentOffset / width));
+    }, []);
 
     return (
         <View style={styles.container}>
             <ImageBackground
-                source={isDarkMode ? backGroundBlack : backGround}
+                source={isDarkMode ? ASSETS.backgrounds.dark : ASSETS.backgrounds.light}
                 style={styles.backGround}
             >
                 <View style={styles.header}>
                     <TouchableOpacity
-                        onPress={() => props.navigation.navigate("Start")}
+                        onPress={() => navigation.navigate("Start")}
                         style={styles.backButton}
                     >
                         <Image
-                            source={flecha}
-                            style={[
-                                styles.iconoTexto,
-                                { tintColor: isDarkMode ? "white" : "#007AFF" },
-                            ]}
+                            source={ASSETS.icons.arrow}
+                            style={[styles.iconoTexto, {
+                                tintColor: isDarkMode ? "white" : "#007AFF"
+                            }]}
                         />
-                        <Text
-                            style={{
-                                color: isDarkMode ? "#FFFFFF" : "#007AFF",
-                                fontSize: 18,
-                            }}
-                        >
+                        <Text style={{
+                            color: isDarkMode ? "#FFFFFF" : "#007AFF",
+                            fontSize: 18
+                        }}>
                             Volver
                         </Text>
                     </TouchableOpacity>
@@ -223,18 +228,11 @@ const QuickNotes = (props) => {
                         onPress={handleAddNote}
                     >
                         <Image
-                            source={plus}
-                            style={[
-                                styles.iconoAdd,
-                                {
-                                    tintColor: isDarkMode
-                                        ? "rgb(7, 20, 35)"
-                                        : "white",
-                                    backgroundColor: isDarkMode
-                                        ? "white"
-                                        : null,
-                                },
-                            ]}
+                            source={ASSETS.icons.plus}
+                            style={[styles.iconoAdd, {
+                                tintColor: isDarkMode ? "rgb(7, 20, 35)" : "white",
+                                backgroundColor: isDarkMode ? "white" : null
+                            }]}
                         />
                     </TouchableOpacity>
                 </View>
@@ -250,95 +248,25 @@ const QuickNotes = (props) => {
                             pagingEnabled
                             showsHorizontalScrollIndicator={false}
                             onScroll={handleScroll}
-                            keyExtractor={(item) => item.id.toString()}
+                            keyExtractor={item => item.id.toString()}
                             renderItem={({ item }) => (
-                                <View style={styles.noteWrapper}>
-                                    <View style={styles.noteCard}>
-                                        <TextInput
-                                            style={styles.noteText}
-                                            multiline
-                                            value={item.textNote || ""}
-                                            onChangeText={(text) => {
-                                                const updatedNotes = notes.map(
-                                                    (n) =>
-                                                        n.id === item.id
-                                                            ? {
-                                                                  ...n,
-                                                                  textNote:
-                                                                      text,
-                                                              }
-                                                            : n
-                                                );
-                                                setNotes(updatedNotes);
-                                                handleUpdateNote(item.id, text);
-                                            }}
-                                            placeholder="Tareas de clase..."
-                                            placeholderTextColor="#666"
-                                        />
-                                    </View>
-                                    <TouchableOpacity
-                                        style={[
-                                            styles.deleteButton,
-                                            {
-                                                backgroundColor: isDarkMode
-                                                    ? "#FF6B6B"
-                                                    : "white",
-                                            },
-                                        ]}
-                                        onPress={() =>
-                                            handleDeleteNote(item.id)
-                                        }
-                                    >
-                                        <Image
-                                            source={trash}
-                                            style={[
-                                                styles.iconoTrash,
-                                                {
-                                                    tintColor: isDarkMode
-                                                        ? "white"
-                                                        : "#FF6B6B",
-                                                },
-                                            ]}
-                                        />
-                                        <Text
-                                            style={[
-                                                styles.deleteButtonText,
-                                                {
-                                                    color: isDarkMode
-                                                        ? "white"
-                                                        : "#FF6B6B",
-                                                },
-                                            ]}
-                                        >
-                                            Eliminar
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
+                                <NoteCard
+                                    note={item}
+                                    onUpdate={handleUpdateNote}
+                                    onDelete={handleDeleteNote}
+                                    isDarkMode={isDarkMode}
+                                />
                             )}
                         />
-                        {renderPaginationDots()}
+                        <PaginationDots
+                            currentIndex={currentIndex}
+                            totalDots={notes.length}
+                            isDarkMode={isDarkMode}
+                        />
                     </View>
                 )}
 
-                <View id="dock" style={styles.dock}>
-                    <TouchableOpacity
-                        onPress={() =>
-                            props.navigation.navigate("RemindersList")
-                        }
-                    >
-                        <Image source={iconList} style={styles.iconStyle} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() =>
-                            props.navigation.navigate("DailyEntries")
-                        }
-                    >
-                        <Image source={iconDaily} style={styles.iconStyle} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={openCalendar}>
-                        <Image source={iconCalendar} style={styles.iconStyle} />
-                    </TouchableOpacity>
-                </View>
+                <Dock navigation={navigation} />
             </ImageBackground>
         </View>
     );
@@ -374,7 +302,7 @@ const styles = StyleSheet.create({
         marginBottom: 120,
     },
     noteWrapper: {
-        width: width,
+        width,
         alignItems: "center",
         paddingHorizontal: 20,
     },
@@ -421,14 +349,6 @@ const styles = StyleSheet.create({
         height: 8,
         borderRadius: 4,
         marginHorizontal: 4,
-    },
-    navButton: {
-        padding: 10,
-    },
-    navIcon: {
-        width: 24,
-        height: 24,
-        opacity: 0.6,
     },
     loadingText: {
         textAlign: "center",

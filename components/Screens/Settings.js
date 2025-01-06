@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import {
     View,
     ImageBackground,
@@ -8,30 +8,36 @@ import {
     Image,
     Platform,
     Modal,
+    Alert,
 } from "react-native";
 import { Title, Switch } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as Notifications from "expo-notifications";
-
-// CONTEXTS
 import { useTheme } from "../Contexts/ThemeContext";
 import { SettingsContext } from "../Contexts/SettingsContext";
-
 import Separator from "../Elements/Separator";
 
-// Wallpaper
-const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
-const backGroundBlack = require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
+const ASSETS = {
+    backgrounds: {
+        light: require("../../assets/Imag/Wallpaper/Wallpaper.jpg"),
+        dark: require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg"),
+    },
+    icons: {
+        arrow: require("../../assets/IconosTexto/flecha.png"),
+    },
+};
 
-// ICONOS DE TEXTO
-const flecha = require("../../assets/IconosTexto/flecha.png");
+const NOTIFICATION_CONFIG = {
+    title: "Hora de relax 🧘🏻",
+    body: "¿Qué tal si escribes sobre tu día?",
+    sound: true,
+};
 
-const Settings = (props) => {
+const Settings = ({ navigation }) => {
     const { isDarkMode, toggleTheme } = useTheme();
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
     const [showPicker, setShowPicker] = useState(false);
-
     const {
         faceIdEnabled,
         setFaceIdEnabled,
@@ -39,299 +45,248 @@ const Settings = (props) => {
         setRecord,
         time,
         setTime,
-    } = useContext(SettingsContext);
+    } = React.useContext(SettingsContext);
 
-    // MODO NOCHE
-    const DarkModeSwitch = (value) => {
-        setDarkModeEnabled(value);
-        toggleTheme();
-    };
+    const themeStyles = useMemo(() => ({
+        text: {
+            color: isDarkMode ? "#FFFFFF" : "#333",
+            fontSize: 18,
+        },
+        card: {
+            backgroundColor: isDarkMode ? "#2C2C2E" : "rgba(255, 255, 255, 0.9)",
+        },
+        title: {
+            color: isDarkMode ? "#FFFFFF" : "#000",
+        },
+        icon: {
+            tintColor: isDarkMode ? "white" : "#007AFF",
+        },
+        backButton: {
+            color: isDarkMode ? "white" : "#007AFF",
+            fontSize: 18,
+        },
+    }), [isDarkMode]);
 
-    // RECORDATORIO
-    const onTimeChange = (event, selectedTime) => {
+    useEffect(() => {
+        const initializeNotifications = async () => {
+            Notifications.setNotificationHandler({
+                handleNotification: async () => ({
+                    shouldShowAlert: true,
+                    shouldPlaySound: true,
+                    shouldSetBadge: false,
+                }),
+            });
+
+            const { status } = await Notifications.requestPermissionsAsync();
+            if (status !== "granted") {
+                Alert.alert("Permiso requerido", "Se requieren permisos para mostrar notificaciones.");
+            }
+        };
+
+        initializeNotifications();
+    }, []);
+
+    const formatTime = useCallback((time) => {
+        const hours = time.getHours() % 12 || 12;
+        const minutes = time.getMinutes().toString().padStart(2, '0');
+        const suffix = time.getHours() >= 12 ? "PM" : "AM";
+        return `${hours}:${minutes} ${suffix}`;
+    }, []);
+
+    const scheduleNotification = useCallback(async (time) => {
+        const now = new Date();
+        const triggerTime = new Date(time);
+
+        if (triggerTime.getHours() < now.getHours() ||
+            (triggerTime.getHours() === now.getHours() &&
+             triggerTime.getMinutes() <= now.getMinutes())) {
+            triggerTime.setDate(triggerTime.getDate() + 1);
+        }
+
+        try {
+            await Notifications.scheduleNotificationAsync({
+                content: NOTIFICATION_CONFIG,
+                trigger: triggerTime,
+            });
+
+            Alert.alert(
+                "Notificación programada",
+                `La notificación se mostrará a las ${triggerTime.toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}`
+            );
+        } catch (error) {
+            console.error('Error scheduling notification:', error);
+            Alert.alert("Error", "No se pudo programar la notificación");
+        }
+    }, []);
+
+    const handleTimeChange = useCallback((event, selectedTime) => {
         const currentTime = selectedTime || time;
         setTime(currentTime);
 
         if (record) {
             scheduleNotification(currentTime);
         }
-
         setShowPicker(false);
-    };
+    }, [record, time, setTime, scheduleNotification]);
 
-    const toggleReminder = (value) => {
+    const handleReminderToggle = useCallback((value) => {
         setRecord(value);
-
         if (value && !showPicker) {
             setShowPicker(true);
-        } else if (!value) {
-            console.log("Recordatorio desactivado.");
         }
-    };
+    }, [showPicker]);
 
-    useEffect(() => {
-        Notifications.setNotificationHandler({
-            handleNotification: async () => ({
-                shouldShowAlert: true,
-                shouldPlaySound: true,
-                shouldSetBadge: false,
-            }),
-        });
+    const handleDarkModeToggle = useCallback((value) => {
+        setDarkModeEnabled(value);
+        toggleTheme();
+    }, [toggleTheme]);
 
-        const requestPermissions = async () => {
-            const { status } = await Notifications.requestPermissionsAsync();
-            if (status !== "granted") {
-                alert("Se requieren permisos para mostrar notificaciones.");
+    const handleFaceID = useCallback(async (value) => {
+        if (!value) {
+            setFaceIdEnabled(false);
+            return;
+        }
+
+        try {
+            const isBiometricAvailable = await LocalAuthentication.hasHardwareAsync();
+            const supportedTypes = await LocalAuthentication.supportedAuthenticationTypesAsync();
+            const isBiometricEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+            if (!isBiometricAvailable) {
+                throw new Error("Este dispositivo no soporta autenticación biométrica.");
             }
-        };
-        requestPermissions();
-    }, []);
 
-    const formatTime = (time) => {
-        let hours = time.getHours();
-        const minutes = time.getMinutes();
-        const suffix = hours >= 12 ? "PM" : "AM";
+            if (!supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+                throw new Error("Este dispositivo no soporta Face ID.");
+            }
 
-        hours = hours % 12 || 12;
-        const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+            if (!isBiometricEnrolled) {
+                throw new Error("No hay datos biométricos guardados en este dispositivo.");
+            }
 
-        return `${hours}:${formattedMinutes} ${suffix}`;
-    };
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: "Autenticación requerida",
+                cancelLabel: "Cancelar",
+                fallbackLabel: "Usar contraseña",
+            });
 
-    const scheduleNotification = async (time) => {
-        const now = new Date();
-        const triggerTime = new Date(time);
-
-        if (
-            triggerTime.getHours() < now.getHours() ||
-            (triggerTime.getHours() === now.getHours() &&
-                triggerTime.getMinutes() <= now.getMinutes())
-        ) {
-            triggerTime.setDate(triggerTime.getDate() + 1);
-        }
-
-        console.log("Programando notificación para:", triggerTime);
-
-        await Notifications.scheduleNotificationAsync({
-            content: {
-                title: "Hora de relax 🧘🏻",
-                body: "¿Qué tal si escribes sobre tu día?",
-                sound: true,
-            },
-            trigger: triggerTime,
-        });
-
-        alert(
-            `Notificación programada para las ${triggerTime.toLocaleTimeString(
-                "es-ES",
-                { hour: "2-digit", minute: "2-digit" }
-            )}`
-        );
-    };
-
-
-
-
-
-    // FACE ID
-    const authenticateWithFaceID = async () => {
-        const isBiometricAvailable =
-            await LocalAuthentication.hasHardwareAsync();
-        if (!isBiometricAvailable) {
-            alert(
-                "Error. Este dispositivo no soporta autenticación biométrica."
-            );
-            return;
-        }
-
-        const supportedTypes =
-            await LocalAuthentication.supportedAuthenticationTypesAsync();
-        if (
-            !supportedTypes.includes(
-                LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION
-            )
-        ) {
-            alert("Error. Este dispositivo no soporta Face ID.");
-            return;
-        }
-
-        const isBiometricEnrolled = await LocalAuthentication.isEnrolledAsync();
-        if (!isBiometricEnrolled) {
-            alert(
-                "Error. No hay datos biométricos guardados en este dispositivo."
-            );
-            return;
-        }
-
-        const result = await LocalAuthentication.authenticateAsync({
-            promptMessage: "Autenticación requerida",
-            cancelLabel: "Cancelar",
-            fallbackLabel: "Usar contraseña",
-        });
-
-        if (result.success) {
-            setFaceIdEnabled(true);
-            alert("Autenticación con Face ID exitosa.");
-        } else {
+            if (result.success) {
+                setFaceIdEnabled(true);
+                Alert.alert("Éxito", "Autenticación con Face ID exitosa.");
+            } else {
+                throw new Error("Autenticación fallida.");
+            }
+        } catch (error) {
             setFaceIdEnabled(false);
-            alert("Error, autenticación fallida.");
+            Alert.alert("Error", error.message);
         }
-    };
+    }, [setFaceIdEnabled]);
 
-    const FaceIDSwitch = (value) => {
-        if (value) {
-            authenticateWithFaceID();
-        } else {
-            setFaceIdEnabled(false);
-        }
-    };
+    const SettingRow = useCallback(({ label, value, onValueChange, rightComponent }) => (
+        <>
+            <View style={styles.fila}>
+                <Text style={themeStyles.text}>{label}</Text>
+                {rightComponent || (
+                    <Switch
+                        value={value}
+                        onValueChange={onValueChange}
+                        color="#30D158"
+                    />
+                )}
+            </View>
+            <Separator />
+        </>
+    ), [themeStyles]);
+
+    const TimePicker = useCallback(() => (
+        <Modal
+            transparent
+            visible={showPicker}
+            animationType="fade"
+            onRequestClose={() => setShowPicker(false)}
+        >
+            <View style={styles.modalContainer}>
+                <View style={styles.pickerContainer}>
+                    <DateTimePicker
+                        value={time}
+                        mode="time"
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        themeVariant="light"
+                        onChange={handleTimeChange}
+                        is24Hour={false}
+                        locale="en-US"
+                    />
+                    <TouchableOpacity
+                        style={styles.closeButton}
+                        onPress={() => setShowPicker(false)}
+                    >
+                        <Text style={styles.closeButtonText}>Cerrar</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </Modal>
+    ), [showPicker, time, handleTimeChange]);
 
     return (
         <View style={styles.container}>
             <ImageBackground
-                source={isDarkMode ? backGroundBlack : backGround}
+                source={isDarkMode ? ASSETS.backgrounds.dark : ASSETS.backgrounds.light}
                 style={styles.backGround}
             >
                 <View style={styles.lineaVolver}>
-                    <TouchableOpacity
-                        onPress={() => props.navigation.navigate("Start")}
-                    >
-                        <Text
-                            style={{
-                                color: isDarkMode ? "white" : "#007AFF",
-                                fontSize: 18,
-                            }}
-                        >
+                    <TouchableOpacity onPress={() => navigation.navigate("Start")}>
+                        <Text style={themeStyles.backButton}>
                             <Image
-                                source={flecha}
-                                style={[
-                                    styles.iconoTexto,
-                                    {
-                                        tintColor: isDarkMode
-                                            ? "white"
-                                            : "#007AFF",
-                                    },
-                                ]}
+                                source={ASSETS.icons.arrow}
+                                style={[styles.iconoTexto, themeStyles.icon]}
                             />
                             Volver
                         </Text>
                     </TouchableOpacity>
                 </View>
 
-                <Title
-                    style={[
-                        styles.titulo,
-                        {
-                            color: isDarkMode ? "#FFFFFF" : "#000",
-                        },
-                    ]}
-                >
+                <Title style={[styles.titulo, themeStyles.title]}>
                     Ajustes
                 </Title>
 
-                <View
-                    style={[
-                        styles.card,
-                        {
-                            backgroundColor: isDarkMode
-                                ? "#2C2C2E"
-                                : "rgba(255, 255, 255, 0.9)",
-                        },
-                    ]}
-                >
-                    <View style={styles.fila}>
-                        <Text
-                            style={{
-                                color: isDarkMode ? "#FFFFFF" : "#333",
-                                fontSize: 18,
-                            }}
-                        >
-                            Recordatorio
-                        </Text>
-
-                        <View style={styles.recordatorioContainer}>
-                            <TouchableOpacity
-                                onPress={() => setShowPicker(true)}
-                                style={styles.timeButton}
-                            >
-                                <Text style={styles.timeText}>
-                                    {formatTime(time)}
-                                </Text>
-                            </TouchableOpacity>
-
-                            <Switch
-                                value={record}
-                                onValueChange={toggleReminder}
-                                color={"#30D158"}
-                            />
-
-                            <Modal
-                                transparent={true}
-                                visible={showPicker}
-                                animationType="fade"
-                                onRequestClose={() => setShowPicker(false)}
-                            >
-                                <View style={styles.modalContainer}>
-                                    <View style={styles.pickerContainer}>
-                                        <DateTimePicker
-                                            value={time}
-                                            mode="time"
-                                            display={Platform.OS === "ios" ? "spinner" : "default"}
-                                            themeVariant="light"
-                                            onChange={onTimeChange}
-                                            is24Hour={false}
-                                            locale="en-US"
-                                        />
-                                        <TouchableOpacity
-                                            style={styles.closeButton}
-                                            onPress={() => setShowPicker(false)}
-                                        >
-                                            <Text
-                                                style={styles.closeButtonText}
-                                            >
-                                                Cerrar
-                                            </Text>
-                                        </TouchableOpacity>
-                                    </View>
-                                </View>
-                            </Modal>
-                        </View>
-                    </View>
-                    <Separator />
-
-                    <View style={styles.fila}>
-                        <Text
-                            style={{
-                                color: isDarkMode ? "#FFFFFF" : "#333",
-                                fontSize: 18,
-                            }}
-                        >
-                            Modo nocturno
-                        </Text>
-                        <Switch
-                            value={darkModeEnabled}
-                            onValueChange={DarkModeSwitch}
-                            color={"#30D158"}
-                        />
-                    </View>
-                    <Separator />
-
-                    <View style={styles.fila}>
-                        <Text
-                            style={{
-                                color: isDarkMode ? "#FFFFFF" : "#333",
-                                fontSize: 18,
-                            }}
-                        >
-                            Face ID
-                        </Text>
-                        <Switch
-                            value={faceIdEnabled}
-                            onValueChange={FaceIDSwitch}
-                            color={"#30D158"}
-                        />
-                    </View>
+                <View style={[styles.card, themeStyles.card]}>
+                    <SettingRow
+                        label="Recordatorio"
+                        value={record}
+                        onValueChange={handleReminderToggle}
+                        rightComponent={
+                            <View style={styles.recordatorioContainer}>
+                                <TouchableOpacity
+                                    onPress={() => setShowPicker(true)}
+                                    style={styles.timeButton}
+                                >
+                                    <Text style={styles.timeText}>
+                                        {formatTime(time)}
+                                    </Text>
+                                </TouchableOpacity>
+                                <Switch
+                                    value={record}
+                                    onValueChange={handleReminderToggle}
+                                    color="#30D158"
+                                />
+                            </View>
+                        }
+                    />
+                    <SettingRow
+                        label="Modo nocturno"
+                        value={darkModeEnabled}
+                        onValueChange={handleDarkModeToggle}
+                    />
+                    <SettingRow
+                        label="Face ID"
+                        value={faceIdEnabled}
+                        onValueChange={handleFaceID}
+                    />
                 </View>
+                <TimePicker />
             </ImageBackground>
         </View>
     );
@@ -387,7 +342,6 @@ const styles = StyleSheet.create({
         fontSize: 17,
         color: "#007AFF",
     },
-
     iconoTexto: {
         width: 18,
         height: 16,
@@ -410,6 +364,14 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         width: "80%",
+    },
+    closeButton: {
+        marginTop: 10,
+        padding: 10,
+    },
+    closeButtonText: {
+        color: "#007AFF",
+        fontSize: 16,
     },
 });
 

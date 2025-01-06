@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useMemo } from "react";
 import {
     View,
     Text,
@@ -11,249 +11,192 @@ import {
 import { Swipeable } from "react-native-gesture-handler";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
-import Icon from "react-native-vector-icons/FontAwesome";
 
-// Wallpapers e iconos
-const backGround = require("../../../assets/Imag/Wallpaper/Wallpaper.jpg");
-const backGroundBlack = require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
-const flecha = require("../../../assets/IconosTexto/flecha.png");
-const plusCircle2 = require("../../../assets/IconosTexto/plusCircle2.png");
-const trash = require("../../../assets/IconosTexto/trash.png");
-const flag = require("../../../assets/IconosTexto/flag.png");
-const pencil = require("../../../assets/IconosTexto/pencil.png");
-const eye = require("../../../assets/IconosTexto/eye.png");
-const eyeSlash = require("../../../assets/IconosTexto/eyeSlash.png");
+const ASSETS = {
+    backgrounds: {
+        light: require("../../../assets/Imag/Wallpaper/Wallpaper.jpg"),
+        dark: require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg"),
+    },
+    icons: {
+        arrow: require("../../../assets/IconosTexto/flecha.png"),
+        plusCircle: require("../../../assets/IconosTexto/plusCircle2.png"),
+        trash: require("../../../assets/IconosTexto/trash.png"),
+        flag: require("../../../assets/IconosTexto/flag.png"),
+        pencil: require("../../../assets/IconosTexto/pencil.png"),
+        eye: require("../../../assets/IconosTexto/eye.png"),
+        eyeSlash: require("../../../assets/IconosTexto/eyeSlash.png"),
+    },
+};
 
-const ReminderList = (props) => {
+const API_URL = "http://localhost:8080/api/reminders";
+
+const ReminderList = ({ navigation }) => {
     const { isDarkMode } = useTheme();
     const [reminders, setReminders] = useState([]);
     const [showCompleted, setShowCompleted] = useState(false);
-    const URL_REMINDERS = "http://localhost:8080/api/reminders";
     const openSwipeableRef = useRef(null);
     const swipeableRefs = useRef({});
 
+    const apiActions = useMemo(() => ({
+        fetchReminders: async () => {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error("Network response was not ok");
+                const data = await response.json();
+
+                const processedData = data.map(reminder => ({
+                    ...reminder,
+                    date: reminder.date?.toString(),
+                    time: reminder.time?.toString(),
+                }));
+
+                const sortedData = processedData.sort((a, b) => Number(a.completed) - Number(b.completed));
+                const filteredData = showCompleted ? sortedData : sortedData.filter(item => !item.completed);
+                setReminders(filteredData);
+            } catch (error) {
+                console.error("Error fetching reminders:", error);
+            }
+        },
+
+        deleteReminder: async (id) => {
+            try {
+                const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+                if (!response.ok) throw new Error("Network response was not ok");
+                apiActions.fetchReminders();
+            } catch (error) {
+                console.error("Error deleting reminder:", error);
+            }
+        },
+
+        toggleCompleted: async (id) => {
+            try {
+                const response = await fetch(`${API_URL}/${id}/complete`, { method: "PATCH" });
+                if (!response.ok) throw new Error("Network response was not ok");
+
+                setReminders(prev => {
+                    const updated = prev.map(reminder =>
+                        reminder.id === id ? { ...reminder, completed: !reminder.completed } : reminder
+                    ).sort((a, b) => Number(a.completed) - Number(b.completed));
+                    return updated;
+                });
+
+                setTimeout(apiActions.fetchReminders, 300);
+            } catch (error) {
+                console.error("Error toggling reminder:", error);
+            }
+        },
+    }), [showCompleted]);
+
     useFocusEffect(
         useCallback(() => {
-            fetchReminders();
+            apiActions.fetchReminders();
         }, [showCompleted])
     );
 
     const closeAllSwipeables = useCallback(() => {
-        Object.values(swipeableRefs.current).forEach((ref) => {
-            if (ref && ref.close) {
-                ref.close();
-            }
-        });
+        Object.values(swipeableRefs.current).forEach(ref => ref?.close?.());
         openSwipeableRef.current = null;
     }, []);
 
-    const handleNavigation = useCallback(
-        (route, params = {}) => {
-            closeAllSwipeables();
-            props.navigation.navigate(route, {
-                ...params,
-                onSave: fetchReminders // Añadimos el callback
-            });
-        },
-        [props.navigation]
-    );
+    const handleNavigation = useCallback((route, params = {}) => {
+        closeAllSwipeables();
+        navigation.navigate(route, {
+            ...params,
+            onSave: apiActions.fetchReminders
+        });
+    }, [navigation]);
 
-    const fetchReminders = async () => {
-        try {
-            const response = await fetch(URL_REMINDERS);
-            if (!response.ok) throw new Error("Network response was not ok");
-            const data = await response.json();
-
-            // Asegurarse de que las fechas sean strings
-            const processedData = data.map((reminder) => ({
-                ...reminder,
-                date: reminder.date ? reminder.date.toString() : null,
-                time: reminder.time ? reminder.time.toString() : null,
-            }));
-
-            const sortedData = processedData.sort((a, b) => {
-                if (a.completed === b.completed) return 0;
-                return a.completed ? 1 : -1;
-            });
-
-            const filteredData = showCompleted
-                ? sortedData
-                : sortedData.filter((item) => !item.completed);
-
-            setReminders(filteredData);
-        } catch (error) {
-            console.error("Error fetching reminders:", error);
-        }
-    };
-
-    const deleteReminder = async (id) => {
-        try {
-            const response = await fetch(`${URL_REMINDERS}/${id}`, {
-                method: "DELETE",
-            });
-            if (!response.ok) throw new Error("Network response was not ok");
-            fetchReminders();
-        } catch (error) {
-            console.error("Error deleting reminder:", error);
-        }
-    };
-
-    const toggleCompleted = async (id) => {
-        try {
-            const response = await fetch(`${URL_REMINDERS}/${id}/complete`, {
-                method: "PATCH",
-            });
-            if (!response.ok) throw new Error("Network response was not ok");
-
-            setReminders((prevReminders) => {
-                const updatedReminders = prevReminders.map((reminder) =>
-                    reminder.id === id
-                        ? { ...reminder, completed: !reminder.completed }
-                        : reminder
-                );
-                return updatedReminders.sort((a, b) => {
-                    if (a.completed === b.completed) return 0;
-                    return a.completed ? 1 : -1;
-                });
-            });
-
-            setTimeout(fetchReminders, 300);
-        } catch (error) {
-            console.error("Error toggling reminder:", error);
-        }
-    };
-
-    const renderRightActions = (id) => (
-        <TouchableOpacity
-            style={styles.botonEliminar}
-            onPress={() => {
-                deleteReminder(id);
-                openSwipeableRef.current = null;
-            }}
-        >
-            <View style={styles.eliminarContainer}>
-                <Image source={trash} style={styles.iconoTrash} />
-                <Text style={styles.textoEliminar}>Eliminar</Text>
-            </View>
-        </TouchableOpacity>
-    );
-
-    const renderItem = ({ item }) => (
-        <Swipeable
-            ref={(ref) => {
-                swipeableRefs.current[item.id] = ref;
-            }}
-            renderRightActions={() => renderRightActions(item.id)}
-            rightThreshold={50}
-            onSwipeableWillOpen={() => {
-                if (
-                    openSwipeableRef.current &&
-                    openSwipeableRef.current !== swipeableRefs.current[item.id]
-                ) {
-                    openSwipeableRef.current.close();
-                }
-                openSwipeableRef.current = swipeableRefs.current[item.id];
-            }}
-        >
+    const ReminderItem = useCallback(({ item }) => {
+        const RightActions = () => (
             <TouchableOpacity
-                style={[
-                    styles.reminderItem,
-                    {
-                        backgroundColor: isDarkMode
-                            ? "rgba(155, 160, 180, 0.90)"
-                            : "rgba(255, 255, 255, 0.9)",
-                        opacity: item.completed ? 0.7 : 1,
-                    },
-                ]}
-                onPress={() =>
-                    handleNavigation("RemindersForm", { reminder: item })
-                }
+                style={styles.botonEliminar}
+                onPress={() => {
+                    apiActions.deleteReminder(item.id);
+                    openSwipeableRef.current = null;
+                }}
+            >
+                <View style={styles.eliminarContainer}>
+                    <Image source={ASSETS.icons.trash} style={styles.iconoTrash} />
+                    <Text style={styles.textoEliminar}>Eliminar</Text>
+                </View>
+            </TouchableOpacity>
+        );
+
+        return (
+            <Swipeable
+                ref={ref => {
+                    swipeableRefs.current[item.id] = ref;
+                }}
+                renderRightActions={RightActions}
+                rightThreshold={50}
+                onSwipeableWillOpen={() => {
+                    if (openSwipeableRef.current && openSwipeableRef.current !== swipeableRefs.current[item.id]) {
+                        openSwipeableRef.current.close();
+                    }
+                    openSwipeableRef.current = swipeableRefs.current[item.id];
+                }}
             >
                 <TouchableOpacity
                     style={[
-                        styles.checkbox,
-                        item.completed && styles.checkboxCompleted,
+                        styles.reminderItem,
+                        {
+                            backgroundColor: isDarkMode ? "rgba(155, 160, 180, 0.90)" : "rgba(255, 255, 255, 0.9)",
+                            opacity: item.completed ? 0.7 : 1,
+                        },
                     ]}
-                    onPress={() => toggleCompleted(item.id)}
+                    onPress={() => handleNavigation("RemindersForm", { reminder: item })}
                 >
-                    {item.completed && <Text style={styles.checkmark}>✓</Text>}
-                </TouchableOpacity>
-                <View style={styles.reminderContent}>
-                    <Text
-                        style={[
-                            styles.reminderText,
-                            {
-                                color: isDarkMode
-                                    ? "rgba(255, 255, 255, 0.9)"
-                                    : "#2C2C2E",
-                                textDecorationLine: item.completed
-                                    ? "line-through"
-                                    : "none",
-                            },
-                        ]}
+                    <TouchableOpacity
+                        style={[styles.checkbox, item.completed && styles.checkboxCompleted]}
+                        onPress={() => apiActions.toggleCompleted(item.id)}
                     >
-                        {item.title}
-                    </Text>
-                    {item.flagged && (
-                        <Image
-                            source={flag}
+                        {item.completed && <Text style={styles.checkmark}>✓</Text>}
+                    </TouchableOpacity>
+                    <View style={styles.reminderContent}>
+                        <Text
                             style={[
-                                styles.flagIcon,
+                                styles.reminderText,
                                 {
-                                    tintColor: isDarkMode
-                                        ? "rgb(6, 48, 103)"
-                                        : "#007AFF",
+                                    color: isDarkMode ? "rgba(255, 255, 255, 0.9)" : "#2C2C2E",
+                                    textDecorationLine: item.completed ? "line-through" : "none",
                                 },
                             ]}
-                        />
-                    )}
-                </View>
-            </TouchableOpacity>
-        </Swipeable>
-    );
+                        >
+                            {item.title}
+                        </Text>
+                        {item.flagged && (
+                            <Image
+                                source={ASSETS.icons.flag}
+                                style={[styles.flagIcon, { tintColor: isDarkMode ? "rgb(6, 48, 103)" : "#007AFF" }]}
+                            />
+                        )}
+                    </View>
+                </TouchableOpacity>
+            </Swipeable>
+        );
+    }, [isDarkMode]);
 
-    const FloatingButton = () => (
-        <TouchableOpacity
-            onPress={() => setShowCompleted(!showCompleted)}
-        >
+    const FloatingButton = useCallback(() => (
+        <TouchableOpacity onPress={() => setShowCompleted(!showCompleted)}>
             <Image
-                        source={showCompleted ? eyeSlash : eye}
-                        style={[
-                            styles.floatingButton,
-                            {
-                                tintColor: isDarkMode
-                                    ? "white"
-                                    : "rgb(7, 20, 35)",
-                            },
-                        ]}
-                    />
+                source={showCompleted ? ASSETS.icons.eyeSlash : ASSETS.icons.eye}
+                style={[styles.floatingButton, { tintColor: isDarkMode ? "white" : "rgb(7, 20, 35)" }]}
+            />
         </TouchableOpacity>
-    );
+    ), [showCompleted, isDarkMode]);
 
     return (
         <View style={styles.container}>
             <ImageBackground
-                source={isDarkMode ? backGroundBlack : backGround}
+                source={isDarkMode ? ASSETS.backgrounds.dark : ASSETS.backgrounds.light}
                 style={styles.backGround}
             >
                 <View style={styles.lineaVolver}>
                     <TouchableOpacity onPress={() => handleNavigation("Start")}>
-                        <Text
-                            style={{
-                                color: isDarkMode ? "#FFFFFF" : "#007AFF",
-                                fontSize: 17,
-                            }}
-                        >
+                        <Text style={{ color: isDarkMode ? "#FFFFFF" : "#007AFF", fontSize: 17 }}>
                             <Image
-                                source={flecha}
-                                style={[
-                                    styles.iconoTexto,
-                                    {
-                                        tintColor: isDarkMode
-                                            ? "white"
-                                            : "#007AFF",
-                                    },
-                                ]}
+                                source={ASSETS.icons.arrow}
+                                style={[styles.iconoTexto, { tintColor: isDarkMode ? "white" : "#007AFF" }]}
                             />
                             Volver
                         </Text>
@@ -262,33 +205,21 @@ const ReminderList = (props) => {
 
                 <View style={styles.lineaTitulo}>
                     <Image
-                        source={pencil}
-                        style={[
-                            styles.iconoTitulo,
-                            { tintColor: isDarkMode ? "white" : "black" },
-                        ]}
+                        source={ASSETS.icons.pencil}
+                        style={[styles.iconoTitulo, { tintColor: isDarkMode ? "white" : "black" }]}
                     />
-                    <Text
-                        style={[
-                            styles.titulo,
-                            { color: isDarkMode ? "#FFFFFF" : "#000" },
-                        ]}
-                    >
+                    <Text style={[styles.titulo, { color: isDarkMode ? "#FFFFFF" : "#000" }]}>
                         PROPÓSITOS
                     </Text>
                 </View>
 
-                <TouchableOpacity
-                    onPress={() => handleNavigation("RemindersForm")}
-                >
+                <TouchableOpacity onPress={() => handleNavigation("RemindersForm")}>
                     <Image
-                        source={plusCircle2}
+                        source={ASSETS.icons.plusCircle}
                         style={[
                             styles.iconoAdd,
                             {
-                                tintColor: isDarkMode
-                                    ? "rgb(7, 20, 35)"
-                                    : "white",
+                                tintColor: isDarkMode ? "rgb(7, 20, 35)" : "white",
                                 backgroundColor: isDarkMode ? "white" : null,
                             },
                         ]}
@@ -298,8 +229,8 @@ const ReminderList = (props) => {
                 <View style={styles.card}>
                     <FlatList
                         data={reminders}
-                        keyExtractor={(item) => item.id.toString()}
-                        renderItem={renderItem}
+                        keyExtractor={item => item.id.toString()}
+                        renderItem={({ item }) => <ReminderItem item={item} />}
                         style={styles.listContainer}
                     />
                 </View>

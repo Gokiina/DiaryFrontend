@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import {
     View,
     Text,
@@ -12,17 +12,71 @@ import {
     Linking,
     ScrollView,
     Modal,
+    Alert,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useTheme } from "../../Contexts/ThemeContext";
 
-// Importar imágenes
-const backGround = require("../../../assets/Imag/Wallpaper/Wallpaper.jpg");
-const backGroundBlack = require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
-const flecha = require("../../../assets/IconosTexto/flecha.png");
-const bandera = require("../../../assets/Imag/Apple/Bandera.png");
-const calendario = require("../../../assets/Imag/Apple/Calendario.png");
-const reloj = require("../../../assets/Imag/Apple/Reloj.png");
+const ASSETS = {
+    backGround: require("../../../assets/Imag/Wallpaper/Wallpaper.jpg"),
+    backGroundBlack: require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg"),
+    flecha: require("../../../assets/IconosTexto/flecha.png"),
+    bandera: require("../../../assets/Imag/Apple/Bandera.png"),
+    calendario: require("../../../assets/Imag/Apple/Calendario.png"),
+    reloj: require("../../../assets/Imag/Apple/Reloj.png"),
+};
+
+const Header = ({ isDarkMode, onBack, onSave }) => (
+    <View style={styles.header}>
+        <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Image
+                source={ASSETS.flecha}
+                style={[styles.iconoTexto, { tintColor: isDarkMode ? "white" : "#007AFF" }]}
+            />
+            <Text style={[styles.cancelButton, { color: isDarkMode ? "white" : "#007AFF" }]}>
+                Volver
+            </Text>
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: isDarkMode ? "white" : "#000" }]}>
+            Detalles
+        </Text>
+        <TouchableOpacity onPress={onSave}>
+            <Text style={[styles.doneButton, { color: isDarkMode ? "white" : "#007AFF" }]}>
+                Hecho
+            </Text>
+        </TouchableOpacity>
+    </View>
+);
+
+const CustomModal = ({ visible, onClose, onConfirm, children }) => (
+    <Modal
+        animationType="slide"
+        transparent={true}
+        visible={visible}
+        onRequestClose={onClose}
+    >
+        <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={onClose}
+        >
+            <View style={styles.pickerModal}>
+                <View style={styles.pickerHeader}>
+                    <TouchableOpacity style={styles.pickerButton} onPress={onClose}>
+                        <Text style={styles.pickerButtonText}>Cancelar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.pickerButton} onPress={onConfirm}>
+                        <Text style={styles.pickerButtonText}>Aceptar</Text>
+                    </TouchableOpacity>
+                </View>
+                <View style={styles.pickerContent}>
+                    {children}
+                </View>
+            </View>
+        </TouchableOpacity>
+    </Modal>
+);
+
 const ReminderForm = ({ navigation, route }) => {
     const { isDarkMode } = useTheme();
     const reminderToEdit = route.params?.reminder;
@@ -36,10 +90,25 @@ const ReminderForm = ({ navigation, route }) => {
         time: reminderToEdit?.time || null,
         flagged: reminderToEdit?.flagged || false,
     });
-    const URL_REMINDERS = formData.id
-        ? `http://localhost:8080/api/reminders/${formData.id}`
-        : "http://localhost:8080/api/reminders";
-    const formatDisplayDate = (dateString) => {
+
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
+    const [titleError, setTitleError] = useState(false);
+    const [tempDate, setTempDate] = useState(
+        formData.date ? new Date(formData.date) : new Date()
+    );
+    const [tempTime, setTempTime] = useState(
+        formData.time ? new Date(`2000-01-01T${formData.time}`) : new Date()
+    );
+
+    const URL_REMINDERS = useMemo(() => 
+        formData.id
+            ? `http://localhost:8080/api/reminders/${formData.id}`
+            : "http://localhost:8080/api/reminders",
+        [formData.id]
+    );
+
+    const formatDisplayDate = useCallback((dateString) => {
         if (!dateString) return "Sin fecha";
         try {
             const date = new Date(dateString);
@@ -53,16 +122,14 @@ const ReminderForm = ({ navigation, route }) => {
             console.error("Error formatting date:", error);
             return "Fecha inválida";
         }
-    };
+    }, []);
 
-    const formatDisplayTime = (timeString) => {
+    const formatDisplayTime = useCallback((timeString) => {
         if (!timeString) return "Sin hora";
         try {
             const [hours, minutes] = timeString.split(":");
             const date = new Date();
             date.setHours(parseInt(hours), parseInt(minutes));
-            
-            // Aseguramos formato 12h específico para español
             return date.toLocaleTimeString("es", {
                 hour: "numeric",
                 minute: "2-digit",
@@ -71,67 +138,34 @@ const ReminderForm = ({ navigation, route }) => {
         } catch (error) {
             return "Sin hora";
         }
-    };
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [showTimePicker, setShowTimePicker] = useState(false);
-    const [titleError, setTitleError] = useState(false);
+    }, []);
 
-    const [tempDate, setTempDate] = useState(
-        formData.date ? new Date(formData.date) : new Date()
-    );
-    const [tempTime, setTempTime] = useState(
-        formData.time ? new Date(`2000-01-01T${formData.time}`) : new Date()
-    );
-
-    const handleShowDatePicker = () => {
-        setShowTimePicker(false);
-        setShowDatePicker(true);
-    };
-
-    const handleShowTimePicker = () => {
-        setShowDatePicker(false);
-        setShowTimePicker(true);
-    };
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         if (!formData.title.trim()) {
             setTitleError(true);
             return;
         }
-        setTitleError(false);
 
         try {
             const reminderData = {
-                id: formData.id,
+                ...formData,
                 title: formData.title.trim(),
                 notes: formData.notes?.trim() || "",
                 url: formData.url?.trim() || "",
-                date: formData.date || null,
-                time: formData.time || null,
-                flagged: Boolean(formData.flagged),
                 completed: false,
             };
 
-            console.log("Enviando datos a MongoDB:", reminderData);
-
             const response = await fetch(URL_REMINDERS, {
                 method: formData.id ? "PUT" : "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(reminderData),
             });
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(
-                    errorData.message || "Error al guardar el recordatorio"
-                );
+                throw new Error(errorData.message || "Error al guardar el recordatorio");
             }
 
-            const responseData = await response.json();
-            console.log("Respuesta del servidor:", responseData);
-
-            // Actualiza la lista si existe el callback
             if (route?.params?.onSave) {
                 route.params.onSave();
             }
@@ -139,14 +173,11 @@ const ReminderForm = ({ navigation, route }) => {
             navigation.goBack();
         } catch (error) {
             console.error("Error detallado:", error);
-            Alert.alert(
-                "Error",
-                `No se pudo guardar el recordatorio: ${error.message}`
-            );
+            Alert.alert("Error", `No se pudo guardar el recordatorio: ${error.message}`);
         }
-    };
+    }, [formData, URL_REMINDERS, navigation, route?.params?.onSave]);
 
-    const handleUrlPress = async () => {
+    const handleUrlPress = useCallback(async () => {
         if (formData.url) {
             const url = formData.url.startsWith("http")
                 ? formData.url
@@ -157,384 +188,164 @@ const ReminderForm = ({ navigation, route }) => {
                 console.error("Error opening URL:", error);
             }
         }
-    };
+    }, [formData.url]);
 
-    const onDateChange = (event, selectedDate) => {
-        const currentDate = selectedDate || tempDate;
-        setTempDate(currentDate);
-    };
-
-    const onTimeChange = (event, selectedTime) => {
-        const currentTime = selectedTime || tempTime;
-        setTempTime(currentTime);
-    };
-    const handleDateConfirm = () => {
-        const formattedDate = tempDate.toISOString().split("T")[0]; // Esto ya da el formato YYYY-MM-DD
-        setFormData((prev) => ({ ...prev, date: formattedDate }));
-        setShowDatePicker(false);
-    };
-    const handleTimeConfirm = () => {
-        // Convertimos a formato 24h para almacenamiento
-        const hours = tempTime.getHours();
-        const minutes = tempTime.getMinutes();
-        const formattedTime = `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-        setFormData((prev) => ({ ...prev, time: formattedTime }));
-        setShowTimePicker(false);
-    };
-    const renderDatePicker = () => (
-        <Modal
-            animationType="slide"
-            transparent={true}
-            visible={showDatePicker}
-            onRequestClose={() => setShowDatePicker(false)}
-        >
+    const renderDateTimeControls = () => (
+        <>
             <TouchableOpacity
-                style={styles.modalOverlay}
-                activeOpacity={1}
-                onPress={() => setShowDatePicker(false)}
+                style={styles.optionRow}
+                onPress={() => setShowDatePicker(true)}
             >
-                <View style={styles.pickerModal}>
-                    <View style={styles.pickerHeader}>
-                        <TouchableOpacity
-                            style={styles.pickerButton}
-                            onPress={() => setShowDatePicker(false)}
-                        >
-                            <Text style={styles.pickerButtonText}>
-                                Cancelar
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.pickerButton}
-                            onPress={handleDateConfirm}
-                        >
-                            <Text style={styles.pickerButtonText}>Aceptar</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <View style={styles.pickerContent}>
-                        <DateTimePicker
-                            value={tempDate}
-                            mode="date"
-                            display={
-                                Platform.OS === "ios" ? "spinner" : "default"
-                            }
-                            onChange={onDateChange}
-                            is24Hour={false}
-                            locale="es-ES"
-                            textColor="black"
-                        />
-                    </View>
+                <View style={styles.optionLeft}>
+                    <Image source={ASSETS.calendario} style={styles.optionIcon} />
+                    <Text style={[styles.optionText, { color: isDarkMode ? "white" : "#000" }]}>
+                        Fecha
+                    </Text>
                 </View>
+                <Text style={[styles.optionValue, { color: isDarkMode ? "#64B5F6" : "#007AFF" }]}>
+                    {formatDisplayDate(formData.date)}
+                </Text>
             </TouchableOpacity>
-        </Modal>
+
+            <TouchableOpacity
+                style={styles.optionRow}
+                onPress={() => setShowTimePicker(true)}
+            >
+                <View style={styles.optionLeft}>
+                    <Image source={ASSETS.reloj} style={styles.optionIcon} />
+                    <Text style={[styles.optionText, { color: isDarkMode ? "white" : "#000" }]}>
+                        Hora
+                    </Text>
+                </View>
+                <Text style={[styles.optionValue, { color: isDarkMode ? "#64B5F6" : "#007AFF" }]}>
+                    {formatDisplayTime(formData.time)}
+                </Text>
+            </TouchableOpacity>
+        </>
     );
 
-    const renderTimePicker = () => (
-        <Modal
-            animationType="slide"
-            transparent={true}
-            visible={showTimePicker}
-            onRequestClose={() => setShowTimePicker(false)}
-        >
-            <TouchableOpacity
-                style={styles.modalOverlay}
-                activeOpacity={1}
-                onPress={() => setShowTimePicker(false)}
-            >
-                <View style={styles.pickerModal}>
-                    <View style={styles.pickerHeader}>
-                        <TouchableOpacity
-                            style={styles.pickerButton}
-                            onPress={() => setShowTimePicker(false)}
-                        >
-                            <Text style={styles.pickerButtonText}>
-                                Cancelar
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.pickerButton}
-                            onPress={handleTimeConfirm}
-                        >
-                            <Text style={styles.pickerButtonText}>Aceptar</Text>
-                        </TouchableOpacity>
-                    </View>
-                    <View style={styles.pickerContent}>
-                        <DateTimePicker
-                            value={tempTime}
-                            mode="time"
-                            display="spinner"
-                            onChange={onTimeChange}
-                            is24Hour={false} // Forzamos formato 12h
-                            locale="en-US"
-                            textColor="black"
-                            
-                        />
-                    </View>
-                </View>
-            </TouchableOpacity>
-        </Modal>
-    );
     return (
         <View style={styles.container}>
             <ImageBackground
-                source={isDarkMode ? backGroundBlack : backGround}
+                source={isDarkMode ? ASSETS.backGroundBlack : ASSETS.backGround}
                 style={styles.backGround}
             >
-                <View style={styles.header}>
-                    <TouchableOpacity
-                        onPress={() => navigation.goBack()}
-                        style={styles.backButton}
-                    >
-                        <Image
-                            source={flecha}
-                            style={[
-                                styles.iconoTexto,
-                                { tintColor: isDarkMode ? "white" : "#007AFF" },
-                            ]}
-                        />
-                        <Text
-                            style={[
-                                styles.cancelButton,
-                                { color: isDarkMode ? "white" : "#007AFF" },
-                            ]}
-                        >
-                            Volver
-                        </Text>
-                    </TouchableOpacity>
-                    <Text
-                        style={[
-                            styles.headerTitle,
-                            { color: isDarkMode ? "white" : "#000" },
-                        ]}
-                    >
-                        Detalles
-                    </Text>
-                    <TouchableOpacity onPress={handleSave}>
-                        <Text
-                            style={[
-                                styles.doneButton,
-                                { color: isDarkMode ? "white" : "#007AFF" },
-                            ]}
-                        >
-                            Hecho
-                        </Text>
-                    </TouchableOpacity>
-                </View>
+                <Header
+                    isDarkMode={isDarkMode}
+                    onBack={() => navigation.goBack()}
+                    onSave={handleSave}
+                />
 
                 <ScrollView style={styles.content}>
-                    <View
-                        style={[
-                            styles.card,
-                            {
-                                backgroundColor: isDarkMode
-                                    ? "rgba(155, 160, 180, 0.90)"
-                                    : "rgba(255, 255, 255, 0.9)",
-                            },
-                        ]}
-                    >
-                        <View
-                            style={[
-                                styles.inputContainer,
-                                titleError && styles.errorContainer,
-                            ]}
-                        >
-                            <TextInput
-                                style={[
-                                    styles.titleInput,
-                                    { color: isDarkMode ? "white" : "#000" },
-                                ]}
-                                value={formData.title}
-                                onChangeText={(text) => {
-                                    setTitleError(false);
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        title: text,
-                                    }));
-                                }}
-                                placeholder="Tomar 2l de agua"
-                                placeholderTextColor={
-                                    isDarkMode
-                                        ? "rgba(255, 255, 255, 0.6)"
-                                        : "#999"
-                                }
-                            />
-                        </View>
+                    <View style={[styles.card, {
+                        backgroundColor: isDarkMode ? "rgba(155, 160, 180, 0.90)" : "rgba(255, 255, 255, 0.9)",
+                    }]}>
+                        <TextInput
+                            style={[styles.titleInput, { color: isDarkMode ? "white" : "#000" }]}
+                            value={formData.title}
+                            onChangeText={(text) => {
+                                setTitleError(false);
+                                setFormData(prev => ({ ...prev, title: text }));
+                            }}
+                            placeholder="Tomar 2l de agua"
+                            placeholderTextColor={isDarkMode ? "rgba(255, 255, 255, 0.6)" : "#999"}
+                        />
                         {titleError && (
-                            <Text style={styles.errorText}>
-                                El título es obligatorio
-                            </Text>
+                            <Text style={styles.errorText}>El título es obligatorio</Text>
                         )}
+
                         <View style={styles.separator} />
 
                         <TextInput
-                            style={[
-                                styles.notesInput,
-                                { color: isDarkMode ? "white" : "#000" },
-                            ]}
+                            style={[styles.notesInput, { color: isDarkMode ? "white" : "#000" }]}
                             value={formData.notes}
-                            onChangeText={(text) =>
-                                setFormData((prev) => ({
-                                    ...prev,
-                                    notes: text,
-                                }))
-                            }
+                            onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
                             placeholder="Notas"
-                            placeholderTextColor={
-                                isDarkMode ? "rgba(255, 255, 255, 0.6)" : "#999"
-                            }
+                            placeholderTextColor={isDarkMode ? "rgba(255, 255, 255, 0.6)" : "#999"}
                             multiline
                         />
+
                         <View style={styles.separator} />
 
                         <TouchableOpacity onPress={handleUrlPress}>
                             <TextInput
-                                style={[
-                                    styles.urlInput,
-                                    {
-                                        color: isDarkMode
-                                            ? "#64B5F6"
-                                            : "#007AFF",
-                                    },
-                                ]}
+                                style={[styles.urlInput, { color: isDarkMode ? "#64B5F6" : "#007AFF" }]}
                                 value={formData.url}
-                                onChangeText={(text) =>
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        url: text,
-                                    }))
-                                }
+                                onChangeText={(text) => setFormData(prev => ({ ...prev, url: text }))}
                                 placeholder="URL"
-                                placeholderTextColor={
-                                    isDarkMode
-                                        ? "rgba(255, 255, 255, 0.6)"
-                                        : "#999"
-                                }
+                                placeholderTextColor={isDarkMode ? "rgba(255, 255, 255, 0.6)" : "#999"}
                             />
                         </TouchableOpacity>
                     </View>
 
-                    <View
-                        style={[
-                            styles.card,
-                            {
-                                backgroundColor: isDarkMode
-                                    ? "rgba(155, 160, 180, 0.90)"
-                                    : "rgba(255, 255, 255, 0.9)",
-                            },
-                        ]}
-                    >
-                        <TouchableOpacity
-                            style={styles.optionRow}
-                            onPress={handleShowDatePicker}
-                        >
-                            <View style={styles.optionLeft}>
-                                <Image
-                                    source={calendario}
-                                    style={styles.optionIcon}
-                                />
-                                <Text
-                                    style={[
-                                        styles.optionText,
-                                        {
-                                            color: isDarkMode
-                                                ? "white"
-                                                : "#000",
-                                        },
-                                    ]}
-                                >
-                                    Fecha
-                                </Text>
-                            </View>
-                            <Text
-                                style={[
-                                    styles.optionValue,
-                                    {
-                                        color: isDarkMode
-                                            ? "#64B5F6"
-                                            : "#007AFF",
-                                    },
-                                ]}
-                            >
-                                {formatDisplayDate(formData.date)}
-                            </Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                            style={styles.optionRow}
-                            onPress={handleShowTimePicker}
-                        >
-                            <View style={styles.optionLeft}>
-                                <Image
-                                    source={reloj}
-                                    style={styles.optionIcon}
-                                />
-                                <Text
-                                    style={[
-                                        styles.optionText,
-                                        {
-                                            color: isDarkMode
-                                                ? "white"
-                                                : "#000",
-                                        },
-                                    ]}
-                                >
-                                    Hora
-                                </Text>
-                            </View>
-                            <Text
-                                style={[
-                                    styles.optionValue,
-                                    {
-                                        color: isDarkMode
-                                            ? "#64B5F6"
-                                            : "#007AFF",
-                                    },
-                                ]}
-                            >
-                                {formatDisplayTime(formData.time)}
-                            </Text>
-                        </TouchableOpacity>
+                    <View style={[styles.card, {
+                        backgroundColor: isDarkMode ? "rgba(155, 160, 180, 0.90)" : "rgba(255, 255, 255, 0.9)",
+                    }]}>
+                        {renderDateTimeControls()}
 
                         <View style={styles.separator} />
 
                         <View style={styles.optionRow}>
                             <View style={styles.optionLeft}>
-                                <Image
-                                    source={bandera}
-                                    style={styles.optionIcon}
-                                />
-                                <Text
-                                    style={[
-                                        styles.optionText,
-                                        {
-                                            color: isDarkMode
-                                                ? "white"
-                                                : "#000",
-                                        },
-                                    ]}
-                                >
+                                <Image source={ASSETS.bandera} style={styles.optionIcon} />
+                                <Text style={[styles.optionText, { color: isDarkMode ? "white" : "#000" }]}>
                                     Señalar
                                 </Text>
                             </View>
                             <Switch
                                 value={formData.flagged}
-                                onValueChange={(value) =>
-                                    setFormData((prev) => ({
-                                        ...prev,
-                                        flagged: value,
-                                    }))
-                                }
-                                trackColor={{
-                                    false: "#767577",
-                                    true: "#34C759",
-                                }}
+                                onValueChange={(value) => setFormData(prev => ({ ...prev, flagged: value }))}
+                                trackColor={{ false: "#767577", true: "#34C759" }}
                                 ios_backgroundColor="#767577"
                             />
                         </View>
                     </View>
                 </ScrollView>
 
-                {renderDatePicker()}
-                {renderTimePicker()}
+                <CustomModal
+                    visible={showDatePicker}
+                    onClose={() => setShowDatePicker(false)}
+                    onConfirm={() => {
+                        setFormData(prev => ({ 
+                            ...prev, 
+                            date: tempDate.toISOString().split('T')[0] 
+                        }));
+                        setShowDatePicker(false);
+                    }}
+                >
+                    <DateTimePicker
+                        value={tempDate}
+                        mode="date"
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        onChange={(_, selectedDate) => setTempDate(selectedDate || tempDate)}
+                        locale="es-ES"
+                        textColor="black"
+                    />
+                </CustomModal>
+
+                <CustomModal
+                    visible={showTimePicker}
+                    onClose={() => setShowTimePicker(false)}
+                    onConfirm={() => {
+                        const hours = tempTime.getHours();
+                        const minutes = tempTime.getMinutes();
+                        setFormData(prev => ({ 
+                            ...prev, 
+                            time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}` 
+                        }));
+                        setShowTimePicker(false);
+                    }}
+                >
+                    <DateTimePicker
+                        value={tempTime}
+                        mode="time"
+                        display="spinner"
+                        onChange={(_, selectedTime) => setTempTime(selectedTime || tempTime)}
+                        is24Hour={false}
+                        locale="en-US"
+                        textColor="black"
+                    />
+                </CustomModal>
             </ImageBackground>
         </View>
     );
@@ -643,7 +454,6 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         backgroundColor: "white",
-        //backgroundColor: isDarkMode ? '#000' : '#fff',
         padding: 20,
     },
     datePicker: {
@@ -658,7 +468,7 @@ const styles = StyleSheet.create({
     },
     pickerHeader: {
         flexDirection: "row",
-        justifyContent: "space-between", // Botones en las esquinas
+        justifyContent: "space-between",
         alignItems: "center",
         padding: 15,
         borderBottomWidth: 1,
@@ -708,12 +518,12 @@ const styles = StyleSheet.create({
     pickerContent: {
         padding: 15,
         color: "black",
-        justifyContent: "center", // Centrar contenido verticalmente
+        justifyContent: "center",
         alignItems: "center",
     },
     modalOverlay: {
         flex: 1,
-        justifyContent: "flex-end", // Esto posiciona el contenido en la parte inferior
+        justifyContent: "flex-end",
         backgroundColor: "rgba(0, 0, 0, 0.5)",
     },
     pickerModal: {
@@ -724,4 +534,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ReminderForm;
+export default React.memo(ReminderForm);

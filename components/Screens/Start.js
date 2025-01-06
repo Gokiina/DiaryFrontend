@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
     StyleSheet,
     Text,
@@ -6,41 +6,71 @@ import {
     ImageBackground,
     TouchableOpacity,
     Image,
+    Linking,
 } from "react-native";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useFavorites } from "../Contexts/FavoritesContext";
 import { useEmotions } from "../Contexts/EmotionsContext";
 import { EmojiRow } from "../Elements/EmojiRow";
 import dayjs from "dayjs";
-import { Linking } from "react-native";
 
-// Wallpaper
-const backGround = require("../../assets/Imag/Wallpaper/Wallpaper.jpg");
-const backGroundBlack = require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg");
+const ASSETS = {
+    backgrounds: {
+        light: require("../../assets/Imag/Wallpaper/Wallpaper.jpg"),
+        dark: require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg"),
+    },
+    icons: {
+        notes: require("../../assets/Imag/Iconos/Notes.png"),
+        settings: require("../../assets/Imag/Iconos/Settings.png"),
+        list: require("../../assets/Imag/Iconos/List.png"),
+        daily: require("../../assets/Imag/Iconos/Daily.png"),
+        calendar: require("../../assets/Imag/Iconos/Calendar.png"),
+        mind: require("../../assets/IconosTexto/mind.png"),
+        sun: require("../../assets/IconosTexto/sun.png"),
+    },
+};
 
-// ICONOS
-const iconNotes = require("../../assets/Imag/Iconos/Notes.png");
-const iconSettings = require("../../assets/Imag/Iconos/Settings.png");
-const iconList = require("../../assets/Imag/Iconos/List.png");
-const iconDaily = require("../../assets/Imag/Iconos/Daily.png");
-const iconCalendar = require("../../assets/Imag/Iconos/Calendar.png");
+const API_URL = "http://localhost:8080/api/phrases";
+const DEFAULT_PHRASE = "No puedes controlar el viento, pero sí puedes ajustar las velas.";
 
-// ICONOS DE TEXTO
-const mind = require("../../assets/IconosTexto/mind.png");
-const sun = require("../../assets/IconosTexto/sun.png");
-
-const Start = (props) => {
+const Start = ({ navigation }) => {
     const { isDarkMode } = useTheme();
     const { favorites } = useFavorites();
-    const [favoritePhrase, setFavoritePhrase] = useState(null);
-    const URL_PHRASES = "http://localhost:8080/api/phrases";
     const { emotions, fetchEmotions, saveEmotion } = useEmotions();
+    const [favoritePhrase, setFavoritePhrase] = useState(DEFAULT_PHRASE);
     const [selectedEmoji, setSelectedEmoji] = useState(null);
-    const today = dayjs().format("YYYY-MM-DD");
+    
+    const today = useMemo(() => dayjs().format("YYYY-MM-DD"), []);
 
-    const openCalendar = () => {
+    const themeStyles = useMemo(() => ({
+        stand: {
+            backgroundColor: isDarkMode
+                ? "rgba(255, 255, 255, 0.12)"
+                : "rgba(0, 0, 0, 0.08)",
+        },
+        text: {
+            color: isDarkMode ? "white" : "rgba(27, 31, 38, 0.72)",
+        },
+        subText: {
+            color: isDarkMode ? "white" : "rgba(27, 31, 38, 0.6)",
+        },
+        icon: {
+            tintColor: isDarkMode ? "white" : "rgba(27, 31, 38, 0.72)",
+        },
+    }), [isDarkMode]);
+
+    const handleNavigation = useCallback((screen) => {
+        navigation.navigate(screen);
+    }, [navigation]);
+
+    const openCalendar = useCallback(() => {
         Linking.openURL("calshow://");
-    };
+    }, []);
+
+    const handleEmojiSelect = useCallback(async (emoji) => {
+        await saveEmotion(today, emoji);
+        setSelectedEmoji(emoji);
+    }, [today, saveEmotion]);
 
     useEffect(() => {
         const loadEmotions = async () => {
@@ -51,130 +81,74 @@ const Start = (props) => {
         };
 
         loadEmotions();
-    }, [emotions, today]);
-
-    const handleEmojiSelect = async (emoji) => {
-        await saveEmotion(today, emoji);
-        setSelectedEmoji(emoji);
-    };
+    }, [fetchEmotions, emotions, today]);
 
     useEffect(() => {
         const fetchFavoritePhrases = async () => {
             try {
-                const response = await fetch(URL_PHRASES);
+                const response = await fetch(API_URL);
                 const allPhrases = await response.json();
-
-                const favoritePhrases = allPhrases.filter((phrase) =>
+                
+                const favoritePhrases = allPhrases.filter(phrase => 
                     favorites.includes(phrase.id)
                 );
 
                 if (favoritePhrases.length > 0) {
-                    const randomPhrase =
-                        favoritePhrases[
-                            Math.floor(Math.random() * favoritePhrases.length)
-                        ].phrase;
+                    const randomPhrase = favoritePhrases[
+                        Math.floor(Math.random() * favoritePhrases.length)
+                    ].phrase;
                     setFavoritePhrase(randomPhrase);
-                } else {
-                    setFavoritePhrase(
-                        "No puedes controlar el viento, pero sí puedes ajustar las velas."
-                    );
                 }
             } catch (error) {
                 console.error("Error fetching favorite phrases:", error);
-                setFavoritePhrase(
-                    "No puedes controlar el viento, pero sí puedes ajustar las velas."
-                );
+                setFavoritePhrase(DEFAULT_PHRASE);
             }
         };
 
         fetchFavoritePhrases();
     }, [favorites]);
 
+    const HeaderIcon = useCallback(({ style, icon, onPress }) => (
+        <TouchableOpacity style={style} onPress={onPress}>
+            <Image source={icon} style={styles.iconStyle} />
+        </TouchableOpacity>
+    ), []);
+
+    const TitleRow = useCallback(({ icon, title }) => (
+        <View style={styles.lineaTitulo}>
+            <Image source={icon} style={[styles.iconoTexto, themeStyles.icon]} />
+            <Text style={[styles.divisor, themeStyles.text]}> | </Text>
+            <Text style={[styles.titulo, themeStyles.text]}>{title}</Text>
+        </View>
+    ), [themeStyles]);
+
+    const DockIcon = useCallback(({ icon, onPress }) => (
+        <TouchableOpacity onPress={onPress}>
+            <Image source={icon} style={styles.iconStyle} />
+        </TouchableOpacity>
+    ), []);
+
     return (
         <View style={styles.container}>
             <ImageBackground
-                source={isDarkMode ? backGroundBlack : backGround}
+                source={isDarkMode ? ASSETS.backgrounds.dark : ASSETS.backgrounds.light}
                 style={styles.backGround}
             >
-                <TouchableOpacity
+                <HeaderIcon 
                     style={styles.iconNotes}
-                    onPress={() =>
-                        props.navigation.navigate("QuickNotes")
-                    }
-                >
-                    <Image source={iconNotes} style={styles.iconStyle} />
-                </TouchableOpacity>
-                <TouchableOpacity
+                    icon={ASSETS.icons.notes}
+                    onPress={() => handleNavigation("QuickNotes")}
+                />
+                <HeaderIcon
                     style={styles.iconSettings}
-                    onPress={() => props.navigation.navigate("Settings")}
-                >
-                    <Image source={iconSettings} style={styles.iconStyle} />
-                </TouchableOpacity>
+                    icon={ASSETS.icons.settings}
+                    onPress={() => handleNavigation("Settings")}
+                />
 
-                <View
-                    id="Estado"
-                    style={[
-                        styles.standEstado,
-                        {
-                            backgroundColor: isDarkMode
-                                ? "rgba(255, 255, 255, 0.12)"
-                                : "rgba(0, 0, 0, 0.08)",
-                        },
-                    ]}
-                >
-                    <TouchableOpacity
-                        onPress={() =>
-                            props.navigation.navigate("CalendarEmotions")
-                        }
-                    >
-                        <View style={styles.lineaTitulo}>
-                            <Image
-                                source={mind}
-                                style={[
-                                    styles.iconoTexto,
-                                    {
-                                        tintColor: isDarkMode
-                                            ? "white"
-                                            : "rgba(27, 31, 38, 0.72)",
-                                    },
-                                ]}
-                            />
-                            <Text
-                                style={[
-                                    styles.divisor,
-                                    {
-                                        color: isDarkMode
-                                            ? "white"
-                                            : "rgba(27, 31, 38, 0.72)",
-                                    },
-                                ]}
-                            >
-                                {" "}
-                                |{" "}
-                            </Text>
-                            <Text
-                                style={[
-                                    styles.titulo,
-                                    {
-                                        color: isDarkMode
-                                            ? "white"
-                                            : "rgba(27, 31, 38, 0.72)",
-                                    },
-                                ]}
-                            >
-                                ESTADO
-                            </Text>
-                        </View>
-                        <Text
-                            style={[
-                                styles.textoEstado,
-                                {
-                                    color: isDarkMode
-                                        ? "white"
-                                        : "rgba(27, 31, 38, 0.6)",
-                                },
-                            ]}
-                        >
+                <View style={[styles.standEstado, themeStyles.stand]}>
+                    <TouchableOpacity onPress={() => handleNavigation("CalendarEmotions")}>
+                        <TitleRow icon={ASSETS.icons.mind} title="ESTADO" />
+                        <Text style={[styles.textoEstado, themeStyles.subText]}>
                             Recuerda registrar cómo te encuentras hoy
                         </Text>
                     </TouchableOpacity>
@@ -186,89 +160,28 @@ const Start = (props) => {
                 </View>
 
                 <TouchableOpacity
-                    id="Frase"
-                    style={[
-                        styles.standFrase,
-                        {
-                            backgroundColor: isDarkMode
-                                ? "rgba(255, 255, 255, 0.12)"
-                                : "rgba(0, 0, 0, 0.08)",
-                        },
-                    ]}
-                    onPress={() => props.navigation.navigate("Phrases")}
+                    style={[styles.standFrase, themeStyles.stand]}
+                    onPress={() => handleNavigation("Phrases")}
                 >
-                    <View style={styles.lineaTitulo}>
-                        <Image
-                            source={sun}
-                            style={[
-                                styles.iconoTexto,
-                                {
-                                    tintColor: isDarkMode
-                                        ? "white"
-                                        : "rgba(27, 31, 38, 0.72)",
-                                },
-                            ]}
-                        />
-                        <Text
-                            style={[
-                                styles.divisor,
-                                {
-                                    color: isDarkMode
-                                        ? "white"
-                                        : "rgba(27, 31, 38, 0.72)",
-                                },
-                            ]}
-                        >
-                            {" "}
-                            |{" "}
-                        </Text>
-                        <Text
-                            style={[
-                                styles.titulo,
-                                {
-                                    color: isDarkMode
-                                        ? "white"
-                                        : "rgba(27, 31, 38, 0.72)",
-                                },
-                            ]}
-                        >
-                            FRASE
-                        </Text>
-                    </View>
-                    <Text
-                        style={[
-                            styles.textoFrase,
-                            {
-                                color: isDarkMode
-                                    ? "white"
-                                    : "rgba(27, 31, 38, 0.6)",
-                            },
-                        ]}
-                    >
-                        {favoritePhrase
-                            ? favoritePhrase
-                            : "No puedes controlar el viento, pero sí puedes ajustar las velas."}
+                    <TitleRow icon={ASSETS.icons.sun} title="FRASE" />
+                    <Text style={[styles.textoFrase, themeStyles.subText]}>
+                        {favoritePhrase}
                     </Text>
                 </TouchableOpacity>
 
-                <View id="dock" style={styles.dock}>
-                    <TouchableOpacity
-                        onPress={() =>
-                            props.navigation.navigate("RemindersList")
-                        }
-                    >
-                        <Image source={iconList} style={styles.iconStyle} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() =>
-                            props.navigation.navigate("DailyEntries")
-                        }
-                    >
-                        <Image source={iconDaily} style={styles.iconStyle} />
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={openCalendar}>
-                        <Image source={iconCalendar} style={styles.iconStyle} />
-                    </TouchableOpacity>
+                <View style={styles.dock}>
+                    <DockIcon
+                        icon={ASSETS.icons.list}
+                        onPress={() => handleNavigation("RemindersList")}
+                    />
+                    <DockIcon
+                        icon={ASSETS.icons.daily}
+                        onPress={() => handleNavigation("DailyEntries")}
+                    />
+                    <DockIcon
+                        icon={ASSETS.icons.calendar}
+                        onPress={openCalendar}
+                    />
                 </View>
             </ImageBackground>
         </View>
@@ -302,7 +215,6 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
     },
-
     standEstado: {
         borderRadius: 20,
         padding: 18,
@@ -331,7 +243,6 @@ const styles = StyleSheet.create({
         marginLeft: 5,
         fontFamily: "SF Pro",
     },
-
     standFrase: {
         borderRadius: 20,
         padding: 20,

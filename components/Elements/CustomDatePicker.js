@@ -12,7 +12,6 @@ import { useTheme } from "../Contexts/ThemeContext";
 import weekday from "dayjs/plugin/weekday";
 import "dayjs/locale/es";
 
-// ICONOS
 const flecha = require("../../assets/IconosTexto/flecha.png");
 const flecha2 = require("../../assets/IconosTexto/flecha2.png");
 
