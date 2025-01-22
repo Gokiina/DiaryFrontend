@@ -13,7 +13,7 @@ import {
 import { Title, Switch } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as LocalAuthentication from "expo-local-authentication";
-import * as Notifications from "expo-notifications";
+import * as Notifications from 'expo-notifications';
 import { useTheme } from "../Contexts/ThemeContext";
 import { SettingsContext } from "../Contexts/SettingsContext";
 import Separator from "../Elements/Separator";
@@ -92,52 +92,67 @@ const Settings = ({ navigation }) => {
         const suffix = time.getHours() >= 12 ? "PM" : "AM";
         return `${hours}:${minutes} ${suffix}`;
     }, []);
-
+    const handleTimeButtonPress = useCallback(() => {
+        setShowPicker(true);
+    }, []);
     const scheduleNotification = useCallback(async (time) => {
-        const now = new Date();
-        const triggerTime = new Date(time);
-
-        if (triggerTime.getHours() < now.getHours() ||
-            (triggerTime.getHours() === now.getHours() &&
-             triggerTime.getMinutes() <= now.getMinutes())) {
-            triggerTime.setDate(triggerTime.getDate() + 1);
-        }
-
         try {
+            await Notifications.cancelAllScheduledNotificationsAsync();
+
+            const triggerDate = new Date();
+            triggerDate.setHours(time.getHours());
+            triggerDate.setMinutes(time.getMinutes());
+            triggerDate.setSeconds(0);
+            triggerDate.setMilliseconds(0);
+            const now = new Date();
+            if (triggerDate <= now) {
+                triggerDate.setDate(triggerDate.getDate() + 1);
+            }
+
             await Notifications.scheduleNotificationAsync({
-                content: NOTIFICATION_CONFIG,
-                trigger: triggerTime,
+                content: {
+                    ...NOTIFICATION_CONFIG,
+                    title: `${NOTIFICATION_CONFIG.title}`,
+                },
+                trigger: triggerDate,
             });
 
-            Alert.alert(
-                "Notificación programada",
-                `La notificación se mostrará a las ${triggerTime.toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                })}`
-            );
+            console.log('Current time:', now.toString());
+            console.log('Notification scheduled for:', triggerDate.toString());
+
+            
         } catch (error) {
             console.error('Error scheduling notification:', error);
             Alert.alert("Error", "No se pudo programar la notificación");
         }
     }, []);
 
-    const handleTimeChange = useCallback((event, selectedTime) => {
-        const currentTime = selectedTime || time;
-        setTime(currentTime);
+    const handleTimeChange = useCallback(
+        (event, selectedTime) => {
+            const currentTime = selectedTime || time;
+            setTime(currentTime);
+            setShowPicker(false);
+        },
+        [time, setTime]
+    );
 
-        if (record) {
-            scheduleNotification(currentTime);
-        }
-        setShowPicker(false);
-    }, [record, time, setTime, scheduleNotification]);
-
-    const handleReminderToggle = useCallback((value) => {
-        setRecord(value);
-        if (value && !showPicker) {
-            setShowPicker(true);
-        }
-    }, [showPicker]);
+    const handleReminderToggle = useCallback(
+        (value) => {
+            if (value) {
+                setRecord(true);
+                scheduleNotification(time);
+                Alert.alert(
+                    "Recordatorio activado",
+                    `El recordatorio se ha activado a las ${formatTime(time)}`
+                );
+            } else {
+                setRecord(false);
+                Notifications.cancelAllScheduledNotificationsAsync();
+                Alert.alert("Recordatorio desactivado", "Las notificaciones han sido canceladas");
+            }
+        },
+        [setRecord, time, scheduleNotification, formatTime]
+    );
 
     const handleDarkModeToggle = useCallback((value) => {
         setDarkModeEnabled(value);
@@ -230,6 +245,7 @@ const Settings = ({ navigation }) => {
         </Modal>
     ), [showPicker, time, handleTimeChange]);
 
+
     return (
         <View style={styles.container}>
             <ImageBackground
@@ -254,18 +270,16 @@ const Settings = ({ navigation }) => {
 
                 <View style={[styles.card, themeStyles.card]}>
                     <SettingRow
-                        label="Recordatorio"
+                        label="Recordatorio diario"
                         value={record}
                         onValueChange={handleReminderToggle}
                         rightComponent={
                             <View style={styles.recordatorioContainer}>
                                 <TouchableOpacity
-                                    onPress={() => setShowPicker(true)}
+                                    onPress={handleTimeButtonPress}
                                     style={styles.timeButton}
                                 >
-                                    <Text style={styles.timeText}>
-                                        {formatTime(time)}
-                                    </Text>
+                                    <Text style={styles.timeText}>{formatTime(time)}</Text>
                                 </TouchableOpacity>
                                 <Switch
                                     value={record}
@@ -275,6 +289,9 @@ const Settings = ({ navigation }) => {
                             </View>
                         }
                     />
+
+
+
                     <SettingRow
                         label="Modo nocturno"
                         value={darkModeEnabled}

@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
-
+import { Platform } from 'react-native';
 const { width } = Dimensions.get("window");
 const API_BASE_URL = "http://localhost:8080/api/notes";
 
@@ -89,13 +89,28 @@ const PaginationDots = ({ currentIndex, totalDots, isDarkMode }) => (
 const NoteCard = ({ note, onUpdate, onDelete, isDarkMode }) => (
     <View style={styles.noteWrapper}>
         <View style={styles.noteCard}>
-            <TextInput
+        <TextInput
                 style={styles.noteText}
                 multiline
                 value={note.textNote}
                 onChangeText={(text) => onUpdate(note.id, text)}
                 placeholder="Tareas de clase..."
                 placeholderTextColor="#666"
+                // Configuración específica para caracteres especiales
+                autoCapitalize="none"
+                autoCorrect={false}
+                enablesReturnKeyAutomatically={true}
+                // Importante para iOS: permite el teclado completo
+                textContentType="none"
+                // Asegura que se use el teclado del sistema
+                secureTextEntry={false}
+                contextMenuHidden={false}
+                // Para mejor manejo del texto multilínea
+                textAlignVertical="top"
+                maxLength={1000}
+                // Desactiva cualquier formato automático que pueda interferir
+                spellCheck={true}
+                autoComplete="off"
             />
         </View>
         <TouchableOpacity

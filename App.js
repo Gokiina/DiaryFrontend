@@ -1,7 +1,15 @@
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
 import React from "react";
-
+import * as Notifications from 'expo-notifications';
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+  
 /* SCREENS */
 import CalendarEmotions from "./components/Screens/CalendarEmotions";
 import QuickNotes from "./components/Screens/QuickNotes";

@@ -1,5 +1,13 @@
 {
-  "expo": {
+  "expo": {"plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./local/path/to/your/app-icon.png",
+          "color": "#ffffff"
+        }
+      ]
+    ],
     "name": "AppDiario",
     "slug": "AppDiario",
     "version": "1.0.0",
