@@ -44,11 +44,18 @@ const ReminderList = ({ navigation }) => {
                 if (!response.ok) throw new Error("Network response was not ok");
                 const data = await response.json();
 
-                const processedData = data.map(reminder => ({
-                    ...reminder,
-                    date: reminder.date?.toString(),
-                    time: reminder.time?.toString(),
-                }));
+                const processedData = data.map(reminder => {
+                    return {
+                        id: reminder.id,
+                        title: reminder.title,
+                        completed: reminder.completed,
+                        flagged: reminder.flagged,
+                        date: reminder.date ? reminder.date.toString() : null,
+                        time: reminder.time ? reminder.time.toString() : null,
+                        notes: reminder.notes,
+                        url: reminder.url
+                    };
+                });
 
                 const sortedData = processedData.sort((a, b) => Number(a.completed) - Number(b.completed));
                 const filteredData = showCompleted ? sortedData : sortedData.filter(item => !item.completed);
@@ -73,11 +80,26 @@ const ReminderList = ({ navigation }) => {
                 const response = await fetch(`${API_URL}/${id}/complete`, { method: "PATCH" });
                 if (!response.ok) throw new Error("Network response was not ok");
 
-                setReminders(prev => {
-                    const updated = prev.map(reminder =>
-                        reminder.id === id ? { ...reminder, completed: !reminder.completed } : reminder
-                    ).sort((a, b) => Number(a.completed) - Number(b.completed));
-                    return updated;
+                setReminders(function(previousReminders) {
+                    const updatedReminders = previousReminders.map(function(reminder) {
+                        if (reminder.id === id) {
+                            return {
+                                id: reminder.id,
+                                title: reminder.title,
+                                completed: !reminder.completed,
+                                flagged: reminder.flagged,
+                                date: reminder.date,
+                                time: reminder.time,
+                                notes: reminder.notes,
+                                url: reminder.url
+                            };
+                        }
+                        return reminder;
+                    }).sort(function(a, b) {
+                        return Number(a.completed) - Number(b.completed);
+                    });
+    
+                    return updatedReminders;
                 });
 
                 setTimeout(apiActions.fetchReminders, 300);
@@ -98,12 +120,18 @@ const ReminderList = ({ navigation }) => {
         openSwipeableRef.current = null;
     }, []);
 
-    const handleNavigation = useCallback((route, params = {}) => {
+    const handleNavigation = useCallback((route, params) => {
         closeAllSwipeables();
-        navigation.navigate(route, {
-            ...params,
+        
+        const navigationParams = {
             onSave: apiActions.fetchReminders
-        });
+        };
+    
+        if (params) {
+            navigationParams.reminder = params.reminder;
+        }
+    
+        navigation.navigate(route, navigationParams);
     }, [navigation]);
 
     const ReminderItem = useCallback(({ item }) => {

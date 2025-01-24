@@ -94,10 +94,14 @@ const DailyEntries = ({ navigation }) => {
     const { isDarkMode } = useTheme();
     const { entradas, eliminarEntrada } = useContext(DailyContext);
     
-    const sortedEntries = useMemo(() => 
-        [...entradas].sort((a, b) => new Date(b.date) - new Date(a.date)),
-        [entradas]
-    );
+    const sortedEntries = useMemo(() => {
+        const entriesCopy = entradas.map(entry => ({
+            id: entry.id,
+            date: entry.date,
+            content: entry.content
+        }));
+        return entriesCopy.sort((a, b) => new Date(b.date) - new Date(a.date));
+    }, [entradas]);
 
     const handleNavigation = useCallback((route, params = {}) => {
         navigation.navigate(route, params);

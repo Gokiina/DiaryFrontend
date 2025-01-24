@@ -23,12 +23,16 @@ export const DailyProvider = ({ children }) => {
     };
 
     const agregarEntrada = (nuevaEntrada) => {
-        setEntradas((prev) => [...prev, nuevaEntrada]);
+        setEntradas(currentEntradas => {
+            const updatedEntradas = currentEntradas.slice();
+            updatedEntradas.push(nuevaEntrada);
+            return updatedEntradas;
+        });
     };
 
     const actualizarEntrada = async (nuevaEntrada) => {
-        setEntradas((prev) =>
-            prev.map((entrada) =>
+        setEntradas(currentEntradas => 
+            currentEntradas.map(entrada => 
                 entrada.id === nuevaEntrada.id ? nuevaEntrada : entrada
             )
         );
@@ -52,8 +56,8 @@ export const DailyProvider = ({ children }) => {
                 method: "DELETE",
             });
             if (response.ok) {
-                setEntradas((prev) =>
-                    prev.filter((entrada) => entrada.id !== id)
+                setEntradas(currentEntradas => 
+                    currentEntradas.filter(entrada => entrada.id !== id)
                 );
                 console.log(`Entrada con ID ${id} eliminada.`);
             } else {

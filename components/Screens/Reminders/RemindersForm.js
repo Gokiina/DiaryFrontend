@@ -145,35 +145,34 @@ const ReminderForm = ({ navigation, route }) => {
             setTitleError(true);
             return;
         }
-
+    
+        const reminderData = {
+            title: formData.title.trim(),
+            notes: formData.notes?.trim() || "",
+            url: formData.url?.trim() || "",
+            completed: false
+        };
+    
         try {
-            const reminderData = {
-                ...formData,
-                title: formData.title.trim(),
-                notes: formData.notes?.trim() || "",
-                url: formData.url?.trim() || "",
-                completed: false,
-            };
-
+            const method = formData.id ? "PUT" : "POST";
+            
             const response = await fetch(URL_REMINDERS, {
-                method: formData.id ? "PUT" : "POST",
+                method,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(reminderData),
+                body: JSON.stringify(reminderData)
             });
-
+    
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || "Error al guardar el recordatorio");
+                throw new Error("No se pudo guardar el recordatorio");
             }
-
+    
             if (route?.params?.onSave) {
                 route.params.onSave();
             }
-
             navigation.goBack();
+    
         } catch (error) {
-            console.error("Error detallado:", error);
-            Alert.alert("Error", `No se pudo guardar el recordatorio: ${error.message}`);
+            Alert.alert("Error", error.message);
         }
     }, [formData, URL_REMINDERS, navigation, route?.params?.onSave]);
 
@@ -245,7 +244,15 @@ const ReminderForm = ({ navigation, route }) => {
                             value={formData.title}
                             onChangeText={(text) => {
                                 setTitleError(false);
-                                setFormData(prev => ({ ...prev, title: text }));
+                                setFormData(prev => ({ 
+                                    id: prev.id, 
+                                    title: text, 
+                                    notes: prev.notes, 
+                                    url: prev.url, 
+                                    date: prev.date, 
+                                    time: prev.time, 
+                                    flagged: prev.flagged 
+                                }));
                             }}
                             placeholder="Tomar 2l de agua"
                             placeholderTextColor={isDarkMode ? "rgba(255, 255, 255, 0.6)" : "#999"}
@@ -259,7 +266,17 @@ const ReminderForm = ({ navigation, route }) => {
                         <TextInput
                             style={[styles.notesInput, { color: isDarkMode ? "white" : "#000" }]}
                             value={formData.notes}
-                            onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
+                            onChangeText={(text) => 
+                                setFormData(prev => ({ 
+                                    id: prev.id, 
+                                    title: prev.title, 
+                                    notes: text, 
+                                    url: prev.url, 
+                                    date: prev.date, 
+                                    time: prev.time, 
+                                    flagged: prev.flagged 
+                                }))}
+                                
                             placeholder="Notas"
                             placeholderTextColor={isDarkMode ? "rgba(255, 255, 255, 0.6)" : "#999"}
                             multiline
@@ -271,7 +288,16 @@ const ReminderForm = ({ navigation, route }) => {
                             <TextInput
                                 style={[styles.urlInput, { color: isDarkMode ? "#64B5F6" : "#007AFF" }]}
                                 value={formData.url}
-                                onChangeText={(text) => setFormData(prev => ({ ...prev, url: text }))}
+                                onChangeText={(text) => 
+                                    setFormData(prev => ({ 
+                                        id: prev.id, 
+                                        title: prev.title, 
+                                        notes: prev.notes, 
+                                        url:text, 
+                                        date: prev.date, 
+                                        time: prev.time, 
+                                        flagged: prev.flagged 
+                                    }))}
                                 placeholder="URL"
                                 placeholderTextColor={isDarkMode ? "rgba(255, 255, 255, 0.6)" : "#999"}
                             />
@@ -294,7 +320,17 @@ const ReminderForm = ({ navigation, route }) => {
                             </View>
                             <Switch
                                 value={formData.flagged}
-                                onValueChange={(value) => setFormData(prev => ({ ...prev, flagged: value }))}
+                                onValueChange={(value) => 
+                                    setFormData(prev => ({ 
+                                        id: prev.id, 
+                                        title: prev.title, 
+                                        notes: prev.notes, 
+                                        url: prev.url, 
+                                        date: prev.date, 
+                                        time: prev.time, 
+                                        flagged: value 
+                                    }))}
+                                    
                                 trackColor={{ false: "#767577", true: "#34C759" }}
                                 ios_backgroundColor="#767577"
                             />
@@ -307,8 +343,13 @@ const ReminderForm = ({ navigation, route }) => {
                     onClose={() => setShowDatePicker(false)}
                     onConfirm={() => {
                         setFormData(prev => ({ 
-                            ...prev, 
-                            date: tempDate.toISOString().split('T')[0] 
+                            id: prev.id, 
+                            title: prev.title, 
+                            notes: prev.notes, 
+                            url: prev.url, 
+                            date: tempDate.toISOString().split('T')[0], 
+                            time: prev.time, 
+                            flagged: prev.flagged 
                         }));
                         setShowDatePicker(false);
                     }}
@@ -330,8 +371,13 @@ const ReminderForm = ({ navigation, route }) => {
                         const hours = tempTime.getHours();
                         const minutes = tempTime.getMinutes();
                         setFormData(prev => ({ 
-                            ...prev, 
-                            time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}` 
+                            id: prev.id, 
+                            title: text, 
+                            notes: prev.notes, 
+                            url: prev.url, 
+                            date: prev.date, 
+                            time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`, 
+                            flagged: prev.flagged 
                         }));
                         setShowTimePicker(false);
                     }}
@@ -350,7 +396,6 @@ const ReminderForm = ({ navigation, route }) => {
         </View>
     );
 };
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,

@@ -84,11 +84,12 @@ const DailyPage = ({ navigation, route }) => {
             navigation.goBack();
             return;
         }
-
+    
         try {
             if (isEditing) {
                 const updatedEntry = {
-                    ...initialEntry,
+                    id: initialEntry.id,
+                    date: initialEntry.date,
                     content: text
                 };
                 actualizarEntrada(updatedEntry);

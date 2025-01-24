@@ -36,10 +36,11 @@ export const EmotionsProvider = ({ children }) => {
                 throw new Error(`Backend error: ${errorText}`);
             }
 
-            setEmotions((prev) => ({
-                ...prev,
-                [date]: emotion,
-            }));
+            setEmotions(currentEmotions => {
+                const newEmotions = Object.assign({}, currentEmotions);
+                newEmotions[date] = emotion;
+                return newEmotions;
+            });
         } catch (error) {
             console.error("Error al guardar la emoción:", error);
         }

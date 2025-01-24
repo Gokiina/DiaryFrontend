@@ -16,7 +16,6 @@ import * as LocalAuthentication from "expo-local-authentication";
 import * as Notifications from 'expo-notifications';
 import { useTheme } from "../Contexts/ThemeContext";
 import { SettingsContext } from "../Contexts/SettingsContext";
-import Separator from "../Elements/Separator";
 
 const ASSETS = {
     backgrounds: {
@@ -48,23 +47,11 @@ const Settings = ({ navigation }) => {
     } = React.useContext(SettingsContext);
 
     const themeStyles = useMemo(() => ({
-        text: {
-            color: isDarkMode ? "#FFFFFF" : "#333",
-            fontSize: 18,
-        },
-        card: {
-            backgroundColor: isDarkMode ? "#2C2C2E" : "rgba(255, 255, 255, 0.9)",
-        },
-        title: {
-            color: isDarkMode ? "#FFFFFF" : "#000",
-        },
-        icon: {
-            tintColor: isDarkMode ? "white" : "#007AFF",
-        },
-        backButton: {
-            color: isDarkMode ? "white" : "#007AFF",
-            fontSize: 18,
-        },
+        text: { color: isDarkMode ? "#FFFFFF" : "#333", fontSize: 18 },
+        card: { backgroundColor: isDarkMode ? "#2C2C2E" : "rgba(255, 255, 255, 0.9)" },
+        title: { color: isDarkMode ? "#FFFFFF" : "#000" },
+        icon: { tintColor: isDarkMode ? "white" : "#007AFF" },
+        backButton: { color: isDarkMode ? "white" : "#007AFF", fontSize: 18 },
     }), [isDarkMode]);
 
     useEffect(() => {
@@ -92,9 +79,9 @@ const Settings = ({ navigation }) => {
         const suffix = time.getHours() >= 12 ? "PM" : "AM";
         return `${hours}:${minutes} ${suffix}`;
     }, []);
-    const handleTimeButtonPress = useCallback(() => {
-        setShowPicker(true);
-    }, []);
+
+    const handleTimeButtonPress = useCallback(() => setShowPicker(true), []);
+
     const scheduleNotification = useCallback(async (time) => {
         try {
             await Notifications.cancelAllScheduledNotificationsAsync();
@@ -111,16 +98,12 @@ const Settings = ({ navigation }) => {
 
             await Notifications.scheduleNotificationAsync({
                 content: {
-                    ...NOTIFICATION_CONFIG,
-                    title: `${NOTIFICATION_CONFIG.title}`,
+                    title: NOTIFICATION_CONFIG.title,
+                    body: NOTIFICATION_CONFIG.body,
+                    sound: NOTIFICATION_CONFIG.sound,
                 },
                 trigger: triggerDate,
             });
-
-            console.log('Current time:', now.toString());
-            console.log('Notification scheduled for:', triggerDate.toString());
-
-            
         } catch (error) {
             console.error('Error scheduling notification:', error);
             Alert.alert("Error", "No se pudo programar la notificación");
@@ -200,7 +183,7 @@ const Settings = ({ navigation }) => {
         }
     }, [setFaceIdEnabled]);
 
-    const SettingRow = useCallback(({ label, value, onValueChange, rightComponent }) => (
+    const SettingRow = useCallback(({ label, value, onValueChange, rightComponent, hideSeparator }) => (
         <>
             <View style={styles.fila}>
                 <Text style={themeStyles.text}>{label}</Text>
@@ -212,9 +195,11 @@ const Settings = ({ navigation }) => {
                     />
                 )}
             </View>
-            <Separator />
+            {!hideSeparator && (
+                <View style={[styles.separator, { backgroundColor: isDarkMode ? "#545456" : "#f3f3f3" }]} />
+            )}
         </>
-    ), [themeStyles]);
+    ), [themeStyles, isDarkMode]);
 
     const TimePicker = useCallback(() => (
         <Modal
@@ -244,7 +229,6 @@ const Settings = ({ navigation }) => {
             </View>
         </Modal>
     ), [showPicker, time, handleTimeChange]);
-
 
     return (
         <View style={styles.container}>
@@ -290,8 +274,6 @@ const Settings = ({ navigation }) => {
                         }
                     />
 
-
-
                     <SettingRow
                         label="Modo nocturno"
                         value={darkModeEnabled}
@@ -301,6 +283,7 @@ const Settings = ({ navigation }) => {
                         label="Face ID"
                         value={faceIdEnabled}
                         onValueChange={handleFaceID}
+                        hideSeparator={true}
                     />
                 </View>
                 <TimePicker />
@@ -310,9 +293,7 @@ const Settings = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
+    container: { flex: 1 },
     backGround: {
         flex: 1,
         alignItems: "center",
@@ -341,6 +322,10 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         marginVertical: 10,
+    },
+    separator: {
+        height: 1,
+        marginVertical: 1,
     },
     recordatorioContainer: {
         flexDirection: "row",

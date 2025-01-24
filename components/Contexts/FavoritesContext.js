@@ -41,11 +41,14 @@ export const FavoritesProvider = ({ children }) => {
     }, [favorites]);
 
     const toggleFavorite = (id) => {
-        setFavorites((prevFavorites) => {
-            const updatedFavorites = prevFavorites.includes(id)
-                ? prevFavorites.filter((favId) => favId !== id)
-                : [...prevFavorites, id];
-            return updatedFavorites;
+        setFavorites(currentFavorites => {
+            if (currentFavorites.includes(id)) {
+                return currentFavorites.filter(favId => favId !== id);
+            } else {
+                const newFavorites = currentFavorites.slice();
+                newFavorites.push(id);
+                return newFavorites;
+            }
         });
     };
 

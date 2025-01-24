@@ -26,7 +26,11 @@ export const RemindersProvider = ({ children }) => {
                 body: JSON.stringify(newReminder),
             });
             const data = await response.json();
-            setReminders((prev) => [...prev, data]);
+            setReminders(currentReminders => {
+                const newRemindersList = currentReminders.slice();
+                newRemindersList.push(data);
+                return newRemindersList;
+            });
         } catch (error) {
             console.error("Error adding reminder:", error);
         }
@@ -42,8 +46,8 @@ export const RemindersProvider = ({ children }) => {
                 body: JSON.stringify(updatedReminder),
             });
             const data = await response.json();
-            setReminders((prev) =>
-                prev.map((reminder) =>
+            setReminders(currentReminders => 
+                currentReminders.map(reminder => 
                     reminder.id === updatedReminder.id ? data : reminder
                 )
             );
@@ -57,8 +61,8 @@ export const RemindersProvider = ({ children }) => {
             await fetch(`${URL_REMINDERS}/${id}`, {
                 method: "DELETE",
             });
-            setReminders((prev) =>
-                prev.filter((reminder) => reminder.id !== id)
+            setReminders(currentReminders => 
+                currentReminders.filter(reminder => reminder.id !== id)
             );
         } catch (error) {
             console.error("Error deleting reminder:", error);

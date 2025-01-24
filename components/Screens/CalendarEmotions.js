@@ -77,10 +77,6 @@ const CalendarEmotions = ({ navigation }) => {
         setSelectedDate(date);
     }, []);
 
-    const handleEmojiSelect = useCallback((emoji) => {
-        saveEmotion(selectedDate, emoji);
-    }, [selectedDate, saveEmotion]);
-
     const handleBack = useCallback(() => {
         navigation.navigate("Start");
     }, [navigation]);

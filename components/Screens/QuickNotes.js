@@ -14,7 +14,6 @@ import {
 } from "react-native";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
-import { Platform } from 'react-native';
 const { width } = Dimensions.get("window");
 const API_BASE_URL = "http://localhost:8080/api/notes";
 
@@ -38,7 +37,12 @@ const noteService = {
         const response = await fetch(API_BASE_URL);
         if (!response.ok) throw new Error("Failed to fetch notes");
         const data = await response.json();
-        return data.map(note => ({ ...note, textNote: note.textNote || "" }));
+        return data.map(note => {
+            if (note.textNote === undefined || note.textNote === null) {
+                note.textNote = "";
+            }
+            return note;
+        });
     },
 
     async createNote() {
@@ -172,7 +176,11 @@ const QuickNotes = ({ navigation }) => {
     }, []));
 
     const handleAddNote = useCallback(async () => {
-        if (notes.some(note => !note.textNote?.trim())) {
+        if (notes.some(note => {
+            return note.textNote === undefined || 
+                   note.textNote === null || 
+                   note.textNote.trim() === "";
+        })) {
             Alert.alert("Nota vacía", "Por favor complete la nota actual antes de crear una nueva.");
             return;
         }
@@ -191,9 +199,23 @@ const QuickNotes = ({ navigation }) => {
     const handleUpdateNote = useCallback(async (id, content) => {
         try {
             await noteService.updateNote(id, content);
-            setNotes(prev => prev.map(note =>
-                note.id === id ? { ...note, textNote: content } : note
-            ));
+            setNotes(prev => {
+                const updatedNotes = [];
+        
+                for (let i = 0; i < prev.length; i++) {
+                    if (prev[i].id === id) {
+                        const updatedNote = {
+                            id: prev[i].id,
+                            textNote: content,
+
+                        };
+                        updatedNotes.push(updatedNote);
+                    } else {
+                        updatedNotes.push(prev[i]);
+                    }
+                }
+                return updatedNotes;
+            });
         } catch (error) {
             console.error("Error updating note:", error);
         }

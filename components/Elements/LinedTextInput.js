@@ -28,13 +28,25 @@ const LinedBackground = ({ isDarkMode, children }) => {
   );
 };
 
-const LinedTextInput = ({ isDarkMode, value, onChangeText, style, ...props }) => {
+const LinedTextInput = ({ 
+  isDarkMode, 
+  value, 
+  onChangeText, 
+  style, 
+  placeholder,
+  placeholderTextColor,
+  multiline,
+  numberOfLines
+}) => {
   return (
     <LinedBackground isDarkMode={isDarkMode}>
       <TextInput
-        {...props}
         value={value}
         onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={placeholderTextColor}
+        multiline={multiline}
+        numberOfLines={numberOfLines}
         style={[
           styles.textInput,
           {
@@ -54,8 +66,11 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   linesContainer: {
-    ...StyleSheet.absoluteFillObject,
     position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   line: {
     height: 1,
