@@ -28,7 +28,7 @@ const ASSETS = {
     },
 };
 
-const API_URL = "http://localhost:8080/api/reminders";
+const API_URL = "https://diarybackend-txxw.onrender.com/api/reminders";
 
 const ReminderList = ({ navigation }) => {
     const { isDarkMode } = useTheme();

@@ -15,7 +15,7 @@ import "dayjs/locale/es";
 const flecha = require("../../assets/IconosTexto/flecha.png");
 const flecha2 = require("../../assets/IconosTexto/flecha2.png");
 
-const URL_EMOTIONS = "http://localhost:8080/api/emotions";
+const URL_EMOTIONS = "https://diarybackend-txxw.onrender.com/api/emotions";
 
 const CustomDatePicker = ({ selectedDate }) => {
     const [emotions, setEmotions] = useState({});

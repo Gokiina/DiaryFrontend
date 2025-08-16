@@ -25,7 +25,7 @@ const ASSETS = {
     },
 };
 
-const API_BASE_URL = "http://localhost:8080/api/phrases";
+const API_BASE_URL = "https://diarybackend-txxw.onrender.com/api/phrases";
 
 const BackButton = memo(({ navigation, isDarkMode }) => (
     <TouchableOpacity onPress={() => navigation.navigate("Start")}>

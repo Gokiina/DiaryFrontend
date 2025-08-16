@@ -16,7 +16,7 @@ import { useTheme } from "../../Contexts/ThemeContext";
 import { DailyContext } from "../../Contexts/DailyContext";
 import LinedTextInput from "../../Elements/LinedTextInput";
 
-const API_URL = "http://localhost:8080/api/diary";
+const API_URL = "https://diarybackend-txxw.onrender.com/api/diary";
 
 const ASSETS = {
     backgrounds: {

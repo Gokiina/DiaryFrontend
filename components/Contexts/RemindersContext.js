@@ -4,7 +4,7 @@ export const RemindersContext = createContext();
 
 export const RemindersProvider = ({ children }) => {
     const [reminders, setReminders] = useState([]);
-    const URL_REMINDERS = "http://localhost:8080/api/reminders";
+    const URL_REMINDERS = "https://diarybackend-txxw.onrender.com/api/reminders";
 
     const fetchReminders = async () => {
         try {

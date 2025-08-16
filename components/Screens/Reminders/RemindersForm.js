@@ -103,8 +103,8 @@ const ReminderForm = ({ navigation, route }) => {
 
     const URL_REMINDERS = useMemo(() => 
         formData.id
-            ? `http://localhost:8080/api/reminders/${formData.id}`
-            : "http://localhost:8080/api/reminders",
+            ? `https://diarybackend-txxw.onrender.com/api/reminders/${formData.id}`
+            : "https://diarybackend-txxw.onrender.com/api/reminders",
         [formData.id]
     );
 

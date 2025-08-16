@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext } from "react";
 
 const EmotionsContext = createContext();
-const URL_EMOTIONS = "http://localhost:8080/api/emotions";
+const URL_EMOTIONS = "https://diarybackend-txxw.onrender.com/api/emotions";
 
 export const EmotionsProvider = ({ children }) => {
     const [emotions, setEmotions] = useState({});

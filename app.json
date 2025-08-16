@@ -1,34 +1,46 @@
 {
-  "expo": {"plugins": [
+  "expo": {
+    "plugins": [
       [
         "expo-notifications",
         {
-          "icon": "./local/path/to/your/app-icon.png",
+          "icon": "./assets/icon.png",
           "color": "#ffffff"
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-font"
     ],
     "name": "AppDiario",
     "slug": "AppDiario",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.AppDiario"
+      "bundleIdentifier": "com.name.AppDiario"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.AppDiario"
+      "package": "com.name.AppDiario"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "scheme": "appdiario",
+    "newArchEnabled": true,
+    "extra": {
+      "eas": {
+        "projectId": "a5379997-7c54-48c6-a5ff-3a63da45bd21"
+      }
     }
   }
 }

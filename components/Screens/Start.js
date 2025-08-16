@@ -6,7 +6,8 @@ import {
     ImageBackground,
     TouchableOpacity,
     Image,
-    Linking,
+    Linking, 
+    Platform
 } from "react-native";
 import { useTheme } from "../Contexts/ThemeContext";
 import { useFavorites } from "../Contexts/FavoritesContext";
@@ -30,7 +31,7 @@ const ASSETS = {
     },
 };
 
-const API_URL = "http://localhost:8080/api/phrases";
+const API_URL = "https://diarybackend-txxw.onrender.com/api/phrases";
 const DEFAULT_PHRASE = "No puedes controlar el viento, pero sí puedes ajustar las velas.";
 
 const Start = ({ navigation }) => {
@@ -64,8 +65,12 @@ const Start = ({ navigation }) => {
     }, [navigation]);
 
     const openCalendar = useCallback(() => {
-        Linking.openURL("calshow://");
-    }, []);
+    if (Platform.OS === 'ios') {
+        Linking.openURL('calshow://');
+    } else if (Platform.OS === 'android') {
+        Linking.openURL('content://com.android.calendar/time/');
+    }
+}, []);
 
     const handleEmojiSelect = useCallback(async (emoji) => {
         await saveEmotion(today, emoji);

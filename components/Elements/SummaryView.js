@@ -15,6 +15,7 @@ const SummaryView = ({ emotions, isDarkMode }) => {
     };
 
     const getMessage = (emoji) => {
+
         const messages = {
             "😁": "Este mes te has sentido mayormente increíble\n¡Sigue haciendo las cosas tal y como las haces! ¡Enhorabuena!",
             "🙂": "Este mes te has sentido generalmente bien\n¡Continúa con ese ánimo positivo!",

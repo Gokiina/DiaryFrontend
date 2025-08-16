@@ -2,7 +2,7 @@ import React, { createContext, useState, useEffect } from "react";
 
 export const DailyContext = createContext();
 
-const URL_DIARY = "http://localhost:8080/api/diary";
+const URL_DIARY = "https://diarybackend-txxw.onrender.com/api/diary";
 
 export const DailyProvider = ({ children }) => {
     const [entradas, setEntradas] = useState([]);

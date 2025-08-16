@@ -15,7 +15,7 @@ import {
 import { useTheme } from "../Contexts/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
 const { width } = Dimensions.get("window");
-const API_BASE_URL = "http://localhost:8080/api/notes";
+const API_BASE_URL = "https://diarybackend-txxw.onrender.com/api/notes";
 
 const ASSETS = {
     backgrounds: {
