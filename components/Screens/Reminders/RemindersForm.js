@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useContext } from "react";
 import {
     View,
     Text,
@@ -16,21 +16,14 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useTheme } from "../../Contexts/ThemeContext";
-
-const ASSETS = {
-    backGround: require("../../../assets/Imag/Wallpaper/Wallpaper.jpg"),
-    backGroundBlack: require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg"),
-    flecha: require("../../../assets/IconosTexto/flecha.png"),
-    bandera: require("../../../assets/Imag/Apple/Bandera.png"),
-    calendario: require("../../../assets/Imag/Apple/Calendario.png"),
-    reloj: require("../../../assets/Imag/Apple/Reloj.png"),
-};
+import ASSETS from '../../Constants/ASSETS';
+import { AuthContext } from "../../Contexts/AuthContext";
 
 const Header = ({ isDarkMode, onBack, onSave }) => (
     <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backButton}>
             <Image
-                source={ASSETS.flecha}
+                source={ASSETS.icons.general.arrow}
                 style={[styles.iconoTexto, { tintColor: isDarkMode ? "white" : "#007AFF" }]}
             />
             <Text style={[styles.cancelButton, { color: isDarkMode ? "white" : "#007AFF" }]}>
@@ -79,6 +72,7 @@ const CustomModal = ({ visible, onClose, onConfirm, children }) => (
 
 const ReminderForm = ({ navigation, route }) => {
     const { isDarkMode } = useTheme();
+    const { userToken } = useContext(AuthContext);
     const reminderToEdit = route.params?.reminder;
 
     const [formData, setFormData] = useState({
@@ -141,6 +135,7 @@ const ReminderForm = ({ navigation, route }) => {
     }, []);
 
     const handleSave = useCallback(async () => {
+        if (!userToken) return; // AÑADIDO: No hacer nada si no hay token
         if (!formData.title.trim()) {
             setTitleError(true);
             return;
@@ -150,7 +145,10 @@ const ReminderForm = ({ navigation, route }) => {
             title: formData.title.trim(),
             notes: formData.notes?.trim() || "",
             url: formData.url?.trim() || "",
-            completed: false
+            completed: false, // Asumimos que no está completado al guardar
+            flagged: formData.flagged,
+            date: formData.date,
+            time: formData.time,
         };
     
         try {
@@ -158,7 +156,10 @@ const ReminderForm = ({ navigation, route }) => {
             
             const response = await fetch(URL_REMINDERS, {
                 method,
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    'Authorization': `Bearer ${userToken}` // AÑADIDO
+                },
                 body: JSON.stringify(reminderData)
             });
     
@@ -174,7 +175,7 @@ const ReminderForm = ({ navigation, route }) => {
         } catch (error) {
             Alert.alert("Error", error.message);
         }
-    }, [formData, URL_REMINDERS, navigation, route?.params?.onSave]);
+    }, [formData, URL_REMINDERS, navigation, route?.params?.onSave, userToken]);
 
     const handleUrlPress = useCallback(async () => {
         if (formData.url) {
@@ -196,7 +197,7 @@ const ReminderForm = ({ navigation, route }) => {
                 onPress={() => setShowDatePicker(true)}
             >
                 <View style={styles.optionLeft}>
-                    <Image source={ASSETS.calendario} style={styles.optionIcon} />
+                    <Image source={ASSETS.icons.apple.calendario} style={styles.optionIcon} />
                     <Text style={[styles.optionText, { color: isDarkMode ? "white" : "#000" }]}>
                         Fecha
                     </Text>
@@ -211,7 +212,7 @@ const ReminderForm = ({ navigation, route }) => {
                 onPress={() => setShowTimePicker(true)}
             >
                 <View style={styles.optionLeft}>
-                    <Image source={ASSETS.reloj} style={styles.optionIcon} />
+                    <Image source={ASSETS.icons.apple.reloj} style={styles.optionIcon} />
                     <Text style={[styles.optionText, { color: isDarkMode ? "white" : "#000" }]}>
                         Hora
                     </Text>
@@ -226,7 +227,7 @@ const ReminderForm = ({ navigation, route }) => {
     return (
         <View style={styles.container}>
             <ImageBackground
-                source={isDarkMode ? ASSETS.backGroundBlack : ASSETS.backGround}
+                source={isDarkMode ? ASSETS.backgrounds.dark : ASSETS.backgrounds.light}
                 style={styles.backGround}
             >
                 <Header
@@ -313,7 +314,7 @@ const ReminderForm = ({ navigation, route }) => {
 
                         <View style={styles.optionRow}>
                             <View style={styles.optionLeft}>
-                                <Image source={ASSETS.bandera} style={styles.optionIcon} />
+                                <Image source={ASSETS.icons.apple.bandera} style={styles.optionIcon} />
                                 <Text style={[styles.optionText, { color: isDarkMode ? "white" : "#000" }]}>
                                     Señalar
                                 </Text>

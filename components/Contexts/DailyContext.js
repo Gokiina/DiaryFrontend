@@ -1,20 +1,22 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
+// AÑADIDO: Importamos el contexto de autenticación
+import { AuthContext } from "./AuthContext";
 
 export const DailyContext = createContext();
-
 const URL_DIARY = "https://diarybackend-txxw.onrender.com/api/diary";
 
 export const DailyProvider = ({ children }) => {
     const [entradas, setEntradas] = useState([]);
-
-    const handleResponse = (response, successCallback) => {
-        if (!response.ok) throw new Error("Error al procesar la solicitud.");
-        return response.json().then(successCallback);
-    };
+    // AÑADIDO: Obtenemos el token
+    const { userToken } = useContext(AuthContext);
 
     const fetchEntries = async () => {
+        if (!userToken) return;
+
         try {
-            const response = await fetch(URL_DIARY);
+            const response = await fetch(URL_DIARY, {
+                headers: { 'Authorization': `Bearer ${userToken}` } // AÑADIDO
+            });
             const data = await response.json();
             setEntradas(data);
         } catch (error) {
@@ -23,43 +25,44 @@ export const DailyProvider = ({ children }) => {
     };
 
     const agregarEntrada = (nuevaEntrada) => {
-        setEntradas(currentEntradas => {
-            const updatedEntradas = currentEntradas.slice();
-            updatedEntradas.push(nuevaEntrada);
-            return updatedEntradas;
-        });
+        // Esta función probablemente también debería hacer una llamada POST a la API
+        setEntradas(currentEntradas => [...currentEntradas, nuevaEntrada]);
     };
 
     const actualizarEntrada = async (nuevaEntrada) => {
+        if (!userToken) return;
+
         setEntradas(currentEntradas => 
             currentEntradas.map(entrada => 
                 entrada.id === nuevaEntrada.id ? nuevaEntrada : entrada
             )
         );
         try {
-            const response = await fetch(`${URL_DIARY}/${nuevaEntrada.id}`, {
+            await fetch(`${URL_DIARY}/${nuevaEntrada.id}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                    "Content-Type": "application/json",
+                    'Authorization': `Bearer ${userToken}` // AÑADIDO
+                },
                 body: JSON.stringify(nuevaEntrada),
             });
-            handleResponse(response, (data) =>
-                console.log("Entrada actualizada:", data)
-            );
         } catch (error) {
             console.error("Error al actualizar la entrada:", error);
         }
     };
 
     const eliminarEntrada = async (id) => {
+        if (!userToken) return;
+
         try {
             const response = await fetch(`${URL_DIARY}/${id}`, {
                 method: "DELETE",
+                headers: { 'Authorization': `Bearer ${userToken}` } // AÑADIDO
             });
             if (response.ok) {
                 setEntradas(currentEntradas => 
                     currentEntradas.filter(entrada => entrada.id !== id)
                 );
-                console.log(`Entrada con ID ${id} eliminada.`);
             } else {
                 console.error(`Error al eliminar la entrada con ID ${id}`);
             }
@@ -68,18 +71,16 @@ export const DailyProvider = ({ children }) => {
         }
     };
 
+    // MODIFICADO: Hacemos que la carga dependa de la existencia del token
     useEffect(() => {
-        fetchEntries();
-    }, []);
+        if (userToken) {
+            fetchEntries();
+        }
+    }, [userToken]);
 
     return (
         <DailyContext.Provider
-            value={{
-                entradas,
-                actualizarEntrada,
-                eliminarEntrada,
-                agregarEntrada,
-            }}
+            value={{ entradas, actualizarEntrada, eliminarEntrada, agregarEntrada }}
         >
             {children}
         </DailyContext.Provider>

@@ -1,60 +1,67 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useState, useContext, useMemo, useEffect } from "react";
+import { AuthContext } from "./AuthContext";
 
 const FavoritesContext = createContext();
-
-export const useFavorites = () => {
-    return useContext(FavoritesContext);
-};
+// AÑADIDO: Nueva URL para la API de favoritos del usuario
+const API_BASE_URL = "https://diarybackend-txxw.onrender.com/api/user/favorites";
 
 export const FavoritesProvider = ({ children }) => {
     const [favorites, setFavorites] = useState([]);
+    const { userToken } = useContext(AuthContext);
 
-    useEffect(() => {
-        const loadFavorites = async () => {
-            try {
-                const storedFavorites = await AsyncStorage.getItem("favorites");
-                if (storedFavorites) {
-                    setFavorites(JSON.parse(storedFavorites));
-                }
-            } catch (error) {
-                console.error("Error al cargar los favoritos:", error);
-            }
-        };
-
-        loadFavorites();
-    }, []);
-
-    useEffect(() => {
-        const saveFavorites = async () => {
-            try {
-                await AsyncStorage.setItem(
-                    "favorites",
-                    JSON.stringify(favorites)
-                );
-            } catch (error) {
-                console.error("Error al guardar los favoritos:", error);
-            }
-        };
-
-        saveFavorites();
-    }, [favorites]);
-
-    const toggleFavorite = (id) => {
-        setFavorites(currentFavorites => {
-            if (currentFavorites.includes(id)) {
-                return currentFavorites.filter(favId => favId !== id);
-            } else {
-                const newFavorites = currentFavorites.slice();
-                newFavorites.push(id);
-                return newFavorites;
-            }
-        });
+    const fetchFavorites = async () => {
+        if (!userToken) return;
+        try {
+            const response = await fetch(API_BASE_URL, {
+                headers: { 'Authorization': `Bearer ${userToken}` }
+            });
+            if (!response.ok) throw new Error("Failed to fetch favorites");
+            const data = await response.json();
+            setFavorites(data);
+        } catch (error) {
+            console.error("Error fetching favorites:", error);
+        }
     };
 
+    const toggleFavorite = async (phraseId) => {
+        if (!userToken) return;
+        try {
+            const response = await fetch(`${API_BASE_URL}/${phraseId}`, {
+                method: "POST",
+                headers: { 'Authorization': `Bearer ${userToken}` }
+            });
+            if (!response.ok) throw new Error("Failed to toggle favorite");
+            const data = await response.json();
+            // El backend ahora devuelve la lista actualizada de favoritos
+            setFavorites(data);
+        } catch (error) {
+            console.error("Error toggling favorite:", error);
+        }
+    };
+    
+    // Carga los favoritos cuando el usuario inicia sesión
+    useEffect(() => {
+        if (userToken) {
+            fetchFavorites();
+        } else {
+            // Si el usuario cierra sesión, limpia los favoritos
+            setFavorites([]);
+        }
+    }, [userToken]);
+
+    // --- ESTA ES LA CORRECCIÓN CLAVE ---
+    // Memoizamos el valor del contexto para evitar el bucle infinito de renderizado.
+    const contextValue = useMemo(() => ({
+        favorites,
+        toggleFavorite,
+        fetchFavorites
+    }), [favorites]);
+
     return (
-        <FavoritesContext.Provider value={{ favorites, toggleFavorite }}>
+        <FavoritesContext.Provider value={contextValue}>
             {children}
         </FavoritesContext.Provider>
     );
 };
+
+export const useFavorites = () => useContext(FavoritesContext);

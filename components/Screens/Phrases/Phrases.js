@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo } from "react";
+import React, { useState, useCallback, memo, useContext } from "react"; // AÑADIDO: useContext
 import {
     View,
     ImageBackground,
@@ -11,19 +11,8 @@ import {
 import { useTheme } from "../../Contexts/ThemeContext";
 import { useFavorites } from "../../Contexts/FavoritesContext";
 import { useFocusEffect } from "@react-navigation/native";
-
-const ASSETS = {
-    backgrounds: {
-        light: require("../../../assets/Imag/Wallpaper/Wallpaper.jpg"),
-        dark: require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg"),
-    },
-    icons: {
-        arrow: require("../../../assets/IconosTexto/flecha.png"),
-        sparkles: require("../../../assets/IconosTexto/sparkles.png"),
-        starFill: require("../../../assets/IconosTexto/star_fill.png"),
-        star: require("../../../assets/IconosTexto/star.png"),
-    },
-};
+import { AuthContext } from "../../Contexts/AuthContext"; // AÑADIDO: Importar AuthContext
+import ASSETS from '../../Constants/ASSETS';
 
 const API_BASE_URL = "https://diarybackend-txxw.onrender.com/api/phrases";
 
@@ -31,7 +20,7 @@ const BackButton = memo(({ navigation, isDarkMode }) => (
     <TouchableOpacity onPress={() => navigation.navigate("Start")}>
         <Text style={{ color: isDarkMode ? "#FFFFFF" : "#007AFF", fontSize: 18 }}>
             <Image
-                source={ASSETS.icons.arrow}
+                source={ASSETS.icons.general.arrow}
                 style={[styles.iconoTexto, { tintColor: isDarkMode ? "white" : "#007AFF" }]}
             />
             Volver
@@ -51,7 +40,7 @@ const PhraseItem = memo(({ item, isDarkMode, onToggleFavorite, isFavorite, isRem
             disabled={isRemoving}
         >
             <Image
-                source={isFavorite ? ASSETS.icons.starFill : ASSETS.icons.star}
+                source={isFavorite ? ASSETS.icons.general.starFill : ASSETS.icons.general.star}
                 style={[styles.staroflife, {
                     tintColor: isDarkMode ? "rgb(78, 88, 100)" : "rgb(158, 158, 158)"
                 }]}
@@ -63,14 +52,18 @@ const PhraseItem = memo(({ item, isDarkMode, onToggleFavorite, isFavorite, isRem
 const Phrases = ({ navigation }) => {
     const { isDarkMode } = useTheme();
     const { favorites, toggleFavorite } = useFavorites();
+    const { userToken } = useContext(AuthContext); // AÑADIDO: Obtener el token
     const [phrases, setPhrases] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [removingFavorites, setRemovingFavorites] = useState(new Set());
 
     const fetchAllPhrases = useCallback(async () => {
+        if (!userToken) return; // AÑADIDO: No hacer nada si no hay token
         try {
             setIsLoading(true);
-            const response = await fetch(API_BASE_URL);
+            const response = await fetch(API_BASE_URL, {
+                headers: { 'Authorization': `Bearer ${userToken}` } // AÑADIDO: Cabecera de autorización
+            });
             if (!response.ok) throw new Error("Error al obtener las frases");
             const data = await response.json();
             setPhrases(data);
@@ -79,7 +72,7 @@ const Phrases = ({ navigation }) => {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [userToken]); // AÑADIDO: userToken como dependencia
 
     useFocusEffect(
         useCallback(() => {
@@ -88,11 +81,14 @@ const Phrases = ({ navigation }) => {
     );
 
     const handleToggleFavorite = useCallback(async (id) => {
-        if (removingFavorites.has(id)) return;
+        if (removingFavorites.has(id) || !userToken) return; // AÑADIDO: No hacer nada si no hay token
 
         setRemovingFavorites(prev => new Set(prev).add(id));
         try {
-            const response = await fetch(`${API_BASE_URL}/${id}/favorite`, { method: "POST" });
+            const response = await fetch(`${API_BASE_URL}/${id}/favorite`, {
+                method: "POST",
+                headers: { 'Authorization': `Bearer ${userToken}` } // AÑADIDO: Cabecera de autorización
+            });
             if (!response.ok) throw new Error("Error al actualizar favorito");
             toggleFavorite(id);
         } catch (error) {
@@ -104,7 +100,7 @@ const Phrases = ({ navigation }) => {
                 return newSet;
             });
         }
-    }, [toggleFavorite, removingFavorites]);
+    }, [toggleFavorite, removingFavorites, userToken]); // AÑADIDO: userToken como dependencia
 
     const renderItem = useCallback(({ item }) => (
         <PhraseItem
@@ -131,14 +127,14 @@ const Phrases = ({ navigation }) => {
                     style={styles.favoriteButton}
                 >
                     <Image
-                        source={ASSETS.icons.starFill}
+                        source={ASSETS.icons.general.starFill}
                         style={[styles.iconoFav, { tintColor: isDarkMode ? "white" : "black" }]}
                     />
                 </TouchableOpacity>
 
                 <View style={styles.lineaTitulo}>
                     <Image
-                        source={ASSETS.icons.sparkles}
+                        source={ASSETS.icons.general.sparkles}
                         style={[styles.iconoTitulo, { tintColor: isDarkMode ? "white" : "black" }]}
                     />
                     <Text style={[styles.titulo, { color: isDarkMode ? "#FFFFFF" : "#000" }]}>

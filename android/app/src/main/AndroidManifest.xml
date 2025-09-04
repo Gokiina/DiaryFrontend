@@ -30,8 +30,7 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="appdiario"/>
-        <data android:scheme="com.name.AppDiario"/>
+        <data android:scheme="com.appdiario.app"/>
       </intent-filter>
     </activity>
   </application>

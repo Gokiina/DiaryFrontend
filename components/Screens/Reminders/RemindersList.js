@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useMemo } from "react";
+import React, { useState, useRef, useCallback, useMemo, useContext } from "react";
 import {
     View,
     Text,
@@ -11,27 +11,14 @@ import {
 import { Swipeable } from "react-native-gesture-handler";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { useFocusEffect } from "@react-navigation/native";
-
-const ASSETS = {
-    backgrounds: {
-        light: require("../../../assets/Imag/Wallpaper/Wallpaper.jpg"),
-        dark: require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg"),
-    },
-    icons: {
-        arrow: require("../../../assets/IconosTexto/flecha.png"),
-        plusCircle: require("../../../assets/IconosTexto/plusCircle2.png"),
-        trash: require("../../../assets/IconosTexto/trash.png"),
-        flag: require("../../../assets/IconosTexto/flag.png"),
-        pencil: require("../../../assets/IconosTexto/pencil.png"),
-        eye: require("../../../assets/IconosTexto/eye.png"),
-        eyeSlash: require("../../../assets/IconosTexto/eyeSlash.png"),
-    },
-};
+import { AuthContext } from "../../Contexts/AuthContext";
+import ASSETS from '../../Constants/ASSETS';
 
 const API_URL = "https://diarybackend-txxw.onrender.com/api/reminders";
 
 const ReminderList = ({ navigation }) => {
     const { isDarkMode } = useTheme();
+    const { userToken } = useContext(AuthContext);
     const [reminders, setReminders] = useState([]);
     const [showCompleted, setShowCompleted] = useState(false);
     const openSwipeableRef = useRef(null);
@@ -39,35 +26,34 @@ const ReminderList = ({ navigation }) => {
 
     const apiActions = useMemo(() => ({
         fetchReminders: async () => {
+            if (!userToken) return;
             try {
-                const response = await fetch(API_URL);
+                const response = await fetch(API_URL, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
                 if (!response.ok) throw new Error("Network response was not ok");
                 const data = await response.json();
 
-                const processedData = data.map(reminder => {
-                    return {
-                        id: reminder.id,
-                        title: reminder.title,
-                        completed: reminder.completed,
-                        flagged: reminder.flagged,
-                        date: reminder.date ? reminder.date.toString() : null,
-                        time: reminder.time ? reminder.time.toString() : null,
-                        notes: reminder.notes,
-                        url: reminder.url
-                    };
-                });
+                const processedData = data.map(reminder => ({
+                    ...reminder,
+                    date: reminder.date ? reminder.date.toString() : null,
+                    time: reminder.time ? reminder.time.toString() : null,
+                }));
 
                 const sortedData = processedData.sort((a, b) => Number(a.completed) - Number(b.completed));
-                const filteredData = showCompleted ? sortedData : sortedData.filter(item => !item.completed);
-                setReminders(filteredData);
+                setReminders(sortedData);
             } catch (error) {
                 console.error("Error fetching reminders:", error);
             }
         },
 
         deleteReminder: async (id) => {
+            if (!userToken) return;
             try {
-                const response = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+                const response = await fetch(`${API_URL}/${id}`, { 
+                    method: "DELETE",
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
                 if (!response.ok) throw new Error("Network response was not ok");
                 apiActions.fetchReminders();
             } catch (error) {
@@ -76,43 +62,32 @@ const ReminderList = ({ navigation }) => {
         },
 
         toggleCompleted: async (id) => {
+            if (!userToken) return;
             try {
-                const response = await fetch(`${API_URL}/${id}/complete`, { method: "PATCH" });
+                const response = await fetch(`${API_URL}/${id}/complete`, { 
+                    method: "PATCH",
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
                 if (!response.ok) throw new Error("Network response was not ok");
 
-                setReminders(function(previousReminders) {
-                    const updatedReminders = previousReminders.map(function(reminder) {
-                        if (reminder.id === id) {
-                            return {
-                                id: reminder.id,
-                                title: reminder.title,
-                                completed: !reminder.completed,
-                                flagged: reminder.flagged,
-                                date: reminder.date,
-                                time: reminder.time,
-                                notes: reminder.notes,
-                                url: reminder.url
-                            };
-                        }
-                        return reminder;
-                    }).sort(function(a, b) {
-                        return Number(a.completed) - Number(b.completed);
-                    });
-    
-                    return updatedReminders;
-                });
+                setReminders(prev =>
+                    prev.map(r => r.id === id ? { ...r, completed: !r.completed } : r)
+                        .sort((a, b) => Number(a.completed) - Number(b.completed))
+                );
 
                 setTimeout(apiActions.fetchReminders, 300);
             } catch (error) {
                 console.error("Error toggling reminder:", error);
             }
         },
-    }), [showCompleted]);
+    }), [userToken]);
 
     useFocusEffect(
         useCallback(() => {
-            apiActions.fetchReminders();
-        }, [showCompleted])
+            if (userToken) {
+                apiActions.fetchReminders();
+            }
+        }, [userToken]) // Se quita showCompleted para no recargar innecesariamente
     );
 
     const closeAllSwipeables = useCallback(() => {
@@ -120,6 +95,7 @@ const ReminderList = ({ navigation }) => {
         openSwipeableRef.current = null;
     }, []);
 
+    /*
     const handleNavigation = useCallback((route, params) => {
         closeAllSwipeables();
         
@@ -132,6 +108,12 @@ const ReminderList = ({ navigation }) => {
         }
     
         navigation.navigate(route, navigationParams);
+    }, [navigation, apiActions.fetchReminders]);
+*/
+
+    const handleNavigation = useCallback((route, params) => {
+        closeAllSwipeables();
+        navigation.navigate(route, params);
     }, [navigation]);
 
     const ReminderItem = useCallback(({ item }) => {
@@ -144,7 +126,7 @@ const ReminderList = ({ navigation }) => {
                 }}
             >
                 <View style={styles.eliminarContainer}>
-                    <Image source={ASSETS.icons.trash} style={styles.iconoTrash} />
+                    <Image source={ASSETS.icons.general.trash} style={styles.iconoTrash} />
                     <Text style={styles.textoEliminar}>Eliminar</Text>
                 </View>
             </TouchableOpacity>
@@ -194,7 +176,7 @@ const ReminderList = ({ navigation }) => {
                         </Text>
                         {item.flagged && (
                             <Image
-                                source={ASSETS.icons.flag}
+                                source={ASSETS.icons.general.flag}
                                 style={[styles.flagIcon, { tintColor: isDarkMode ? "rgb(6, 48, 103)" : "#007AFF" }]}
                             />
                         )}
@@ -202,16 +184,21 @@ const ReminderList = ({ navigation }) => {
                 </TouchableOpacity>
             </Swipeable>
         );
-    }, [isDarkMode]);
+    }, [isDarkMode, apiActions]);
 
     const FloatingButton = useCallback(() => (
         <TouchableOpacity onPress={() => setShowCompleted(!showCompleted)}>
             <Image
-                source={showCompleted ? ASSETS.icons.eyeSlash : ASSETS.icons.eye}
+                source={showCompleted ? ASSETS.icons.general.eyeSlash : ASSETS.icons.general.eye}
                 style={[styles.floatingButton, { tintColor: isDarkMode ? "white" : "rgb(7, 20, 35)" }]}
             />
         </TouchableOpacity>
     ), [showCompleted, isDarkMode]);
+    
+    // El filtrado se realiza aquí, antes de pasar los datos a la FlatList
+    const filteredReminders = useMemo(() => {
+        return showCompleted ? reminders : reminders.filter(item => !item.completed);
+    }, [reminders, showCompleted]);
 
     return (
         <View style={styles.container}>
@@ -223,7 +210,7 @@ const ReminderList = ({ navigation }) => {
                     <TouchableOpacity onPress={() => handleNavigation("Start")}>
                         <Text style={{ color: isDarkMode ? "#FFFFFF" : "#007AFF", fontSize: 17 }}>
                             <Image
-                                source={ASSETS.icons.arrow}
+                                source={ASSETS.icons.general.arrow}
                                 style={[styles.iconoTexto, { tintColor: isDarkMode ? "white" : "#007AFF" }]}
                             />
                             Volver
@@ -233,7 +220,7 @@ const ReminderList = ({ navigation }) => {
 
                 <View style={styles.lineaTitulo}>
                     <Image
-                        source={ASSETS.icons.pencil}
+                        source={ASSETS.icons.general.pencil}
                         style={[styles.iconoTitulo, { tintColor: isDarkMode ? "white" : "black" }]}
                     />
                     <Text style={[styles.titulo, { color: isDarkMode ? "#FFFFFF" : "#000" }]}>
@@ -243,12 +230,12 @@ const ReminderList = ({ navigation }) => {
 
                 <TouchableOpacity onPress={() => handleNavigation("RemindersForm")}>
                     <Image
-                        source={ASSETS.icons.plusCircle}
+                        source={ASSETS.icons.general.plusCircle}
                         style={[
                             styles.iconoAdd,
                             {
                                 tintColor: isDarkMode ? "rgb(7, 20, 35)" : "white",
-                                backgroundColor: isDarkMode ? "white" : null,
+                                backgroundColor: isDarkMode ? "white" : undefined,
                             },
                         ]}
                     />
@@ -256,7 +243,8 @@ const ReminderList = ({ navigation }) => {
 
                 <View style={styles.card}>
                     <FlatList
-                        data={reminders}
+                        // CORREGIDO: Usamos la lista filtrada en lugar de la original
+                        data={filteredReminders}
                         keyExtractor={item => item.id.toString()}
                         renderItem={({ item }) => <ReminderItem item={item} />}
                         style={styles.listContainer}
@@ -409,3 +397,4 @@ const styles = StyleSheet.create({
 });
 
 export default ReminderList;
+

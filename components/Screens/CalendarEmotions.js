@@ -12,25 +12,14 @@ import { useEmotions } from "../Contexts/EmotionsContext";
 import SummaryView from "../Elements/SummaryView";
 import CustomDatePicker from "../Elements/CustomDatePicker";
 import dayjs from "dayjs";
-
-const ASSETS = {
-    backgrounds: {
-        light: require("../../assets/Imag/Wallpaper/Wallpaper.jpg"),
-        dark: require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg")
-    },
-    icons: {
-        arrow: require("../../assets/IconosTexto/flecha.png"),
-        mind: require("../../assets/IconosTexto/mind.png"),
-        starOfLife: require("../../assets/IconosTexto/staroflife.png")
-    }
-};
+import ASSETS from '../Constants/ASSETS';
 
 const Header = ({ onBack, isDarkMode }) => (
     <View style={styles.lineaVolver}>
         <TouchableOpacity onPress={onBack}>
             <Text style={[styles.headerText, { color: isDarkMode ? "#FFFFFF" : "#007AFF" }]}>
                 <Image
-                    source={ASSETS.icons.arrow}
+                    source={ASSETS.icons.general.arrow}
                     style={[styles.iconoTexto, { tintColor: isDarkMode ? "white" : "#007AFF" }]}
                 />
                 Volver
@@ -42,7 +31,7 @@ const Header = ({ onBack, isDarkMode }) => (
 const Title = ({ isDarkMode }) => (
     <View style={styles.lineaTitulo}>
         <Image
-            source={ASSETS.icons.mind}
+            source={ASSETS.icons.general.mind}
             style={[
                 styles.iconoTitulo,
                 { tintColor: isDarkMode ? "white" : "rgba(27, 31, 38, 0.72)" }

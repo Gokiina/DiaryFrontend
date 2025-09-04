@@ -15,18 +15,9 @@ import {
 import { useTheme } from "../../Contexts/ThemeContext";
 import { DailyContext } from "../../Contexts/DailyContext";
 import LinedTextInput from "../../Elements/LinedTextInput";
+import ASSETS from '../../Constants/ASSETS';
 
 const API_URL = "https://diarybackend-txxw.onrender.com/api/diary";
-
-const ASSETS = {
-    backgrounds: {
-        light: require("../../../assets/Imag/Wallpaper/Wallpaper.jpg"),
-        dark: require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg")
-    },
-    icons: {
-        circleFill: require("../../../assets/IconosTexto/circleFill.png")
-    }
-};
 
 const formatDate = (date) => {
     const d = new Date(date);
@@ -54,7 +45,7 @@ const dailyService = {
 const SaveButton = ({ onPress, isDarkMode }) => (
     <TouchableOpacity style={styles.iconoAdd} onPress={onPress}>
         <Image
-            source={ASSETS.icons.circleFill}
+            source={ASSETS.icons.general.circleFill}
             style={[
                 styles.iconoAdd,
                 {

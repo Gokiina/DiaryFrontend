@@ -1,14 +1,21 @@
-import React, { createContext, useState, useEffect } from "react";
+import React, { createContext, useState, useEffect, useContext } from "react";
+// AÑADIDO: Importamos el contexto de autenticación
+import { AuthContext } from "./AuthContext";
 
 export const RemindersContext = createContext();
 
 export const RemindersProvider = ({ children }) => {
     const [reminders, setReminders] = useState([]);
     const URL_REMINDERS = "https://diarybackend-txxw.onrender.com/api/reminders";
+    // AÑADIDO: Obtenemos el token
+    const { userToken } = useContext(AuthContext);
 
     const fetchReminders = async () => {
+        if (!userToken) return;
         try {
-            const response = await fetch(URL_REMINDERS);
+            const response = await fetch(URL_REMINDERS, {
+                headers: { 'Authorization': `Bearer ${userToken}` } // AÑADIDO
+            });
             const data = await response.json();
             setReminders(data);
         } catch (error) {
@@ -17,31 +24,31 @@ export const RemindersProvider = ({ children }) => {
     };
 
     const addReminder = async (newReminder) => {
+        if (!userToken) return;
         try {
             const response = await fetch(URL_REMINDERS, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    'Authorization': `Bearer ${userToken}` // AÑADIDO
                 },
                 body: JSON.stringify(newReminder),
             });
             const data = await response.json();
-            setReminders(currentReminders => {
-                const newRemindersList = currentReminders.slice();
-                newRemindersList.push(data);
-                return newRemindersList;
-            });
+            setReminders(currentReminders => [...currentReminders, data]);
         } catch (error) {
             console.error("Error adding reminder:", error);
         }
     };
 
     const updateReminder = async (updatedReminder) => {
+        if (!userToken) return;
         try {
-            const response = await fetch(URL_REMINDERS, {
+            const response = await fetch(`${URL_REMINDERS}/${updatedReminder.id}`, { // CORREGIDO: URL con ID
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
+                    'Authorization': `Bearer ${userToken}` // AÑADIDO
                 },
                 body: JSON.stringify(updatedReminder),
             });
@@ -57,9 +64,11 @@ export const RemindersProvider = ({ children }) => {
     };
 
     const deleteReminder = async (id) => {
+        if (!userToken) return;
         try {
             await fetch(`${URL_REMINDERS}/${id}`, {
                 method: "DELETE",
+                headers: { 'Authorization': `Bearer ${userToken}` } // AÑADIDO
             });
             setReminders(currentReminders => 
                 currentReminders.filter(reminder => reminder.id !== id)
@@ -69,9 +78,12 @@ export const RemindersProvider = ({ children }) => {
         }
     };
 
+    // MODIFICADO: Hacemos que la carga dependa de la existencia del token
     useEffect(() => {
-        fetchReminders();
-    }, []);
+        if (userToken) {
+            fetchReminders();
+        }
+    }, [userToken]);
 
     return (
         <RemindersContext.Provider

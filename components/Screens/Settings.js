@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useContext } from "react"; // AÑADIDO: useContext
 import {
     View,
     ImageBackground,
@@ -10,22 +10,14 @@ import {
     Modal,
     Alert,
 } from "react-native";
-import { Title, Switch } from "react-native-paper";
+import { Switch } from 'react-native-paper';
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as Notifications from 'expo-notifications';
 import { useTheme } from "../Contexts/ThemeContext";
 import { SettingsContext } from "../Contexts/SettingsContext";
-
-const ASSETS = {
-    backgrounds: {
-        light: require("../../assets/Imag/Wallpaper/Wallpaper.jpg"),
-        dark: require("../../assets/Imag/Wallpaper/WallpaperBlack.jpeg"),
-    },
-    icons: {
-        arrow: require("../../assets/IconosTexto/flecha.png"),
-    },
-};
+import { AuthContext } from "../Contexts/AuthContext"; // AÑADIDO: AuthContext
+import ASSETS from '../Constants/ASSETS';
 
 const NOTIFICATION_CONFIG = {
     title: "Hora de relax 🧘🏻",
@@ -35,6 +27,7 @@ const NOTIFICATION_CONFIG = {
 
 const Settings = ({ navigation }) => {
     const { isDarkMode, toggleTheme } = useTheme();
+    const { logout } = useContext(AuthContext); // AÑADIDO: Obtenemos la función logout
     const [darkModeEnabled, setDarkModeEnabled] = useState(isDarkMode);
     const [showPicker, setShowPicker] = useState(false);
     const {
@@ -52,27 +45,14 @@ const Settings = ({ navigation }) => {
         title: { color: isDarkMode ? "#FFFFFF" : "#000" },
         icon: { tintColor: isDarkMode ? "white" : "#007AFF" },
         backButton: { color: isDarkMode ? "white" : "#007AFF", fontSize: 18 },
+        logoutText: { color: '#FF453A', fontSize: 18, textAlign: 'center' } // AÑADIDO: Estilo para el botón de logout
     }), [isDarkMode]);
 
     useEffect(() => {
-        const initializeNotifications = async () => {
-            Notifications.setNotificationHandler({
-                handleNotification: async () => ({
-                    shouldShowAlert: true,
-                    shouldPlaySound: true,
-                    shouldSetBadge: false,
-                }),
-            });
-
-            const { status } = await Notifications.requestPermissionsAsync();
-            if (status !== "granted") {
-                Alert.alert("Permiso requerido", "Se requieren permisos para mostrar notificaciones.");
-            }
-        };
-
-        initializeNotifications();
+        // ... (tu código de notificaciones se queda igual)
     }, []);
 
+    // ... (todas tus funciones de handle... se quedan igual)
     const formatTime = useCallback((time) => {
         const hours = time.getHours() % 12 || 12;
         const minutes = time.getMinutes().toString().padStart(2, '0');
@@ -109,7 +89,6 @@ const Settings = ({ navigation }) => {
             Alert.alert("Error", "No se pudo programar la notificación");
         }
     }, []);
-
     const handleTimeChange = useCallback(
         (event, selectedTime) => {
             const currentTime = selectedTime || time;
@@ -200,7 +179,6 @@ const Settings = ({ navigation }) => {
             )}
         </>
     ), [themeStyles, isDarkMode]);
-
     const TimePicker = useCallback(() => (
         <Modal
             transparent
@@ -230,6 +208,7 @@ const Settings = ({ navigation }) => {
         </Modal>
     ), [showPicker, time, handleTimeChange]);
 
+
     return (
         <View style={styles.container}>
             <ImageBackground
@@ -240,7 +219,7 @@ const Settings = ({ navigation }) => {
                     <TouchableOpacity onPress={() => navigation.navigate("Start")}>
                         <Text style={themeStyles.backButton}>
                             <Image
-                                source={ASSETS.icons.arrow}
+                                source={ASSETS.icons.general.arrow}
                                 style={[styles.iconoTexto, themeStyles.icon]}
                             />
                             Volver
@@ -248,9 +227,7 @@ const Settings = ({ navigation }) => {
                     </TouchableOpacity>
                 </View>
 
-                <Title style={[styles.titulo, themeStyles.title]}>
-                    Ajustes
-                </Title>
+                <Text style={[styles.titulo, themeStyles.title]}>Ajustes</Text>
 
                 <View style={[styles.card, themeStyles.card]}>
                     <SettingRow
@@ -259,33 +236,24 @@ const Settings = ({ navigation }) => {
                         onValueChange={handleReminderToggle}
                         rightComponent={
                             <View style={styles.recordatorioContainer}>
-                                <TouchableOpacity
-                                    onPress={handleTimeButtonPress}
-                                    style={styles.timeButton}
-                                >
+                                <TouchableOpacity onPress={handleTimeButtonPress} style={styles.timeButton}>
                                     <Text style={styles.timeText}>{formatTime(time)}</Text>
                                 </TouchableOpacity>
-                                <Switch
-                                    value={record}
-                                    onValueChange={handleReminderToggle}
-                                    color="#30D158"
-                                />
+                                <Switch value={record} onValueChange={handleReminderToggle} color="#30D158" />
                             </View>
                         }
                     />
-
-                    <SettingRow
-                        label="Modo nocturno"
-                        value={darkModeEnabled}
-                        onValueChange={handleDarkModeToggle}
-                    />
-                    <SettingRow
-                        label="Face ID"
-                        value={faceIdEnabled}
-                        onValueChange={handleFaceID}
-                        hideSeparator={true}
-                    />
+                    <SettingRow label="Modo nocturno" value={darkModeEnabled} onValueChange={handleDarkModeToggle} />
+                    <SettingRow label="Face ID" value={faceIdEnabled} onValueChange={handleFaceID} hideSeparator={true} />
                 </View>
+
+                {/* AÑADIDO: Botón de Cerrar Sesión */}
+                <View style={[styles.card, styles.logoutCard, themeStyles.card]}>
+                    <TouchableOpacity onPress={logout} style={styles.logoutButton}>
+                        <Text style={themeStyles.logoutText}>Cerrar Sesión</Text>
+                    </TouchableOpacity>
+                </View>
+
                 <TimePicker />
             </ImageBackground>
         </View>
@@ -375,6 +343,14 @@ const styles = StyleSheet.create({
         color: "#007AFF",
         fontSize: 16,
     },
+    // AÑADIDO: Estilos para el botón de logout
+    logoutCard: {
+        top: 320, // Ajusta esta posición según sea necesario
+        paddingVertical: 5,
+    },
+    logoutButton: {
+        paddingVertical: 10,
+    }
 });
 
 export default Settings;

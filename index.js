@@ -1,8 +1,12 @@
-import { registerRootComponent } from 'expo';
+// index.js
 
+import { AppRegistry } from 'react-native';
 import App from './App';
+// Ya no necesitamos esta línea, puedes borrarla o comentarla
+// import { name as appName } from './app.json';
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
+// ANTES:
+// AppRegistry.registerComponent(appName, () => App);
+
+// DESPUÉS (la línea que necesitas):
+AppRegistry.registerComponent("main", () => App);

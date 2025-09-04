@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo } from "react";
+import React, { useState, useCallback, memo, useContext } from "react"; // AÑADIDO: useContext
 import {
     View,
     ImageBackground,
@@ -11,18 +11,8 @@ import {
 import { useTheme } from "../../Contexts/ThemeContext";
 import { useFavorites } from "../../Contexts/FavoritesContext";
 import { useFocusEffect } from "@react-navigation/native";
-
-const ASSETS = {
-    backgrounds: {
-        light: require("../../../assets/Imag/Wallpaper/Wallpaper.jpg"),
-        dark: require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg"),
-    },
-    icons: {
-        arrow: require("../../../assets/IconosTexto/flecha.png"),
-        starFill: require("../../../assets/IconosTexto/star_fill.png"),
-        starSlash: require("../../../assets/IconosTexto/star_slash.png"),
-    },
-};
+import { AuthContext } from "../../Contexts/AuthContext"; // AÑADIDO: Importar AuthContext
+import ASSETS from '../../Constants/ASSETS';
 
 const API_BASE_URL = "https://diarybackend-txxw.onrender.com/api/phrases";
 
@@ -30,7 +20,7 @@ const BackButton = memo(({ navigation, isDarkMode }) => (
     <TouchableOpacity onPress={() => navigation.navigate("Phrases")}>
         <Text style={{ color: isDarkMode ? "#FFFFFF" : "#007AFF", fontSize: 18 }}>
             <Image
-                source={ASSETS.icons.arrow}
+                source={ASSETS.icons.general.arrow}
                 style={[styles.iconoTexto, { tintColor: isDarkMode ? "white" : "#007AFF" }]}
             />
             Volver
@@ -48,7 +38,7 @@ const PhraseItem = memo(({ item, isDarkMode, onToggleFavorite, isFavorite, isRem
             disabled={isRemoving}
         >
             <Image
-                source={isFavorite && !isRemoving ? ASSETS.icons.starFill : ASSETS.icons.starSlash}
+                source={isFavorite && !isRemoving ? ASSETS.icons.general.starFill : ASSETS.icons.general.starSlash}
                 style={[styles.staroflife, {
                     tintColor: isDarkMode ? "rgb(78, 88, 100)" : "rgb(158, 158, 158)"
                 }]}
@@ -60,12 +50,16 @@ const PhraseItem = memo(({ item, isDarkMode, onToggleFavorite, isFavorite, isRem
 const PhrasesFavorite = ({ navigation }) => {
     const { isDarkMode } = useTheme();
     const { favorites, toggleFavorite } = useFavorites();
+    const { userToken } = useContext(AuthContext); // AÑADIDO: Obtener el token
     const [phrases, setPhrases] = useState([]);
     const [removingFavorites, setRemovingFavorites] = useState(new Set());
 
     const fetchFavoritePhrases = useCallback(async () => {
+        if (!userToken) return; // AÑADIDO: No hacer nada si no hay token
         try {
-            const response = await fetch(API_BASE_URL);
+            const response = await fetch(API_BASE_URL, {
+                headers: { 'Authorization': `Bearer ${userToken}` } // AÑADIDO: Cabecera de autorización
+            });
             if (!response.ok) throw new Error("Error fetching phrases");
             const allPhrases = await response.json();
             const favoritePhrases = allPhrases.filter(phrase => favorites.includes(phrase.id));
@@ -73,12 +67,14 @@ const PhrasesFavorite = ({ navigation }) => {
         } catch (error) {
             console.error("Error fetching favorite phrases:", error);
         }
-    }, [favorites]);
+    }, [favorites, userToken]); // AÑADIDO: userToken como dependencia
 
     const updateFavoriteStatus = useCallback(async (id) => {
+        if (!userToken) return; // AÑADIDO: No hacer nada si no hay token
         try {
             const response = await fetch(`${API_BASE_URL}/${id}/favorite`, {
                 method: "POST",
+                headers: { 'Authorization': `Bearer ${userToken}` } // AÑADIDO: Cabecera de autorización
             });
             if (!response.ok) {
                 throw new Error("Error updating favorite status");
@@ -87,7 +83,7 @@ const PhrasesFavorite = ({ navigation }) => {
             console.error("Error updating favorite status:", error);
             throw error;
         }
-    }, []);
+    }, [userToken]); // AÑADIDO: userToken como dependencia
 
     const handleToggleFavorite = useCallback(async (id) => {
         if (removingFavorites.has(id)) return;
@@ -137,7 +133,7 @@ const PhrasesFavorite = ({ navigation }) => {
 
                 <View style={styles.lineaTitulo}>
                     <Image
-                        source={ASSETS.icons.starFill}
+                        source={ASSETS.icons.general.starFill}
                         style={[styles.iconoTitulo, { tintColor: isDarkMode ? "white" : "black" }]}
                     />
                     <Text style={[styles.titulo, { color: isDarkMode ? "#FFFFFF" : "#000" }]}>

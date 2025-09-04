@@ -1,14 +1,26 @@
 import React, { createContext, useState, useContext } from "react";
+// AÑADIDO: Importamos el contexto de autenticación para obtener el token
+import { AuthContext } from "./AuthContext";
 
 const EmotionsContext = createContext();
 const URL_EMOTIONS = "https://diarybackend-txxw.onrender.com/api/emotions";
 
 export const EmotionsProvider = ({ children }) => {
     const [emotions, setEmotions] = useState({});
+    // AÑADIDO: Obtenemos el token del AuthContext
+    const { userToken } = useContext(AuthContext);
 
     const fetchEmotions = async () => {
+        // AÑADIDO: Si no hay token, no hacemos la petición
+        if (!userToken) return;
+
         try {
-            const response = await fetch(URL_EMOTIONS);
+            // AÑADIDO: Cabecera de autorización con el token JWT
+            const response = await fetch(URL_EMOTIONS, {
+                headers: {
+                    'Authorization': `Bearer ${userToken}`
+                }
+            });
             const data = await response.json();
             const emotionsMap = data.reduce((acc, { date, emotion }) => {
                 acc[date] = emotion;
@@ -21,26 +33,27 @@ export const EmotionsProvider = ({ children }) => {
     };
 
     const saveEmotion = async (date, emotion) => {
+        if (!userToken) return;
+
         try {
             const response = await fetch(URL_EMOTIONS, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    'Authorization': `Bearer ${userToken}` // AÑADIDO
                 },
                 body: JSON.stringify({ date, emotion }),
             });
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error("Error al guardar la emoción:", errorText);
                 throw new Error(`Backend error: ${errorText}`);
             }
 
-            setEmotions(currentEmotions => {
-                const newEmotions = Object.assign({}, currentEmotions);
-                newEmotions[date] = emotion;
-                return newEmotions;
-            });
+            setEmotions(currentEmotions => ({
+                ...currentEmotions,
+                [date]: emotion,
+            }));
         } catch (error) {
             console.error("Error al guardar la emoción:", error);
         }

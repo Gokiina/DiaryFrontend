@@ -1,6 +1,7 @@
 {
   "expo": {
     "plugins": [
+      "@react-native-google-signin/google-signin",
       [
         "expo-notifications",
         {
@@ -8,11 +9,12 @@
           "color": "#ffffff"
         }
       ],
-      "expo-asset",
-      "expo-font"
+      "expo-router"
     ],
     "name": "AppDiario",
     "slug": "AppDiario",
+    "scheme": "com.appdiario.app",
+    "owner": "innovation369",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -24,19 +26,19 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.name.AppDiario"
+      "bundleIdentifier": "com.appdiario.app"
     },
     "android": {
+      "package": "com.appdiario.app",
+      "googleServicesFile": "./google-services.json" ,
       "adaptiveIcon": {
+        "foregroundImage": "./assets/favicon.png",
         "backgroundColor": "#ffffff"
-      },
-      "package": "com.name.AppDiario"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "scheme": "appdiario",
-    "newArchEnabled": true,
     "extra": {
       "eas": {
         "projectId": "a5379997-7c54-48c6-a5ff-3a63da45bd21"

@@ -11,15 +11,7 @@ import {
 import { Swipeable } from "react-native-gesture-handler";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { DailyContext } from "../../Contexts/DailyContext";
-
-const ASSETS = {
-    backGround: require("../../../assets/Imag/Wallpaper/Wallpaper.jpg"),
-    backGroundBlack: require("../../../assets/Imag/Wallpaper/WallpaperBlack.jpeg"),
-    flecha: require("../../../assets/IconosTexto/flecha.png"),
-    plusCircle2: require("../../../assets/IconosTexto/plusCircle2.png"),
-    trash: require("../../../assets/IconosTexto/trash.png"),
-    book: require("../../../assets/IconosTexto/book.png"),
-};
+import ASSETS from '../../Constants/ASSETS';
 
 const Header = ({ isDarkMode, onBack }) => (
     <>
@@ -27,7 +19,7 @@ const Header = ({ isDarkMode, onBack }) => (
             <TouchableOpacity onPress={onBack}>
                 <Text style={{ color: isDarkMode ? "#FFFFFF" : "#007AFF", fontSize: 18 }}>
                     <Image
-                        source={ASSETS.flecha}
+                        source={ASSETS.icons.general.arrow}
                         style={[styles.iconoTexto, { tintColor: isDarkMode ? "white" : "#007AFF" }]}
                     />
                     Volver
@@ -36,7 +28,7 @@ const Header = ({ isDarkMode, onBack }) => (
         </View>
         <View style={styles.lineaTitulo}>
             <Image
-                source={ASSETS.book}
+                source={ASSETS.icons.general.book}
                 style={[styles.iconoTitulo, { tintColor: isDarkMode ? "white" : "black" }]}
             />
             <Text style={[styles.titulo, { color: isDarkMode ? "#FFFFFF" : "#000" }]}>
@@ -113,7 +105,7 @@ const DailyEntries = ({ navigation }) => {
             onPress={() => eliminarEntrada(id)}
         >
             <View style={styles.eliminarContainer}>
-                <Image source={ASSETS.trash} style={styles.iconoTrash} />
+                <Image source={ASSETS.icons.general.trash} style={styles.iconoTrash} />
                 <Text style={styles.textoEliminar}>Eliminar</Text>
             </View>
         </TouchableOpacity>
@@ -131,7 +123,7 @@ const DailyEntries = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <ImageBackground
-                source={isDarkMode ? ASSETS.backGroundBlack : ASSETS.backGround}
+                source={isDarkMode ? ASSETS.backgrounds.dark : ASSETS.backgrounds.light}
                 style={styles.backGround}
             >
                 <Header 
@@ -141,7 +133,7 @@ const DailyEntries = ({ navigation }) => {
                 
                 <TouchableOpacity onPress={() => handleNavigation("DailyPage")}>
                     <Image
-                        source={ASSETS.plusCircle2}
+                        source={ASSETS.icons.general.plusCircle}
                         style={[styles.iconoAdd, {
                             tintColor: isDarkMode ? "rgb(7, 20, 35)" : "white",
                             backgroundColor: isDarkMode ? "white" : null

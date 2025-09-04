@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react"; // AÑADIDO: useContext
 import {
     View,
     Text,
@@ -9,11 +9,10 @@ import {
 } from "react-native";
 import dayjs from "dayjs";
 import { useTheme } from "../Contexts/ThemeContext";
+import { AuthContext } from "../Contexts/AuthContext"; // AÑADIDO: Importar AuthContext
 import weekday from "dayjs/plugin/weekday";
 import "dayjs/locale/es";
-
-const flecha = require("../../assets/IconosTexto/flecha.png");
-const flecha2 = require("../../assets/IconosTexto/flecha2.png");
+import ASSETS from '../Constants/ASSETS';
 
 const URL_EMOTIONS = "https://diarybackend-txxw.onrender.com/api/emotions";
 
@@ -21,26 +20,30 @@ const CustomDatePicker = ({ selectedDate }) => {
     const [emotions, setEmotions] = useState({});
     const [currentMonth, setCurrentMonth] = useState(dayjs().locale("es"));
     const { isDarkMode } = useTheme();
+    const { userToken } = useContext(AuthContext); // AÑADIDO: Obtener el token
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchEmotions = async () => {
+            if (!userToken) return; // AÑADIDO: No hacer nada si no hay token
             try {
-                const response = await fetch(URL_EMOTIONS);
+                const response = await fetch(URL_EMOTIONS, {
+                    headers: { 'Authorization': `Bearer ${userToken}` } // AÑADIDO: Cabecera de autorización
+                });
                 const data = await response.json();
                 const emotionsMap = data.reduce((acc, emotion) => {
                     acc[emotion.date] = emotion.emotion;
                     return acc;
                 }, {});
                 setEmotions(emotionsMap);
-                setLoading(false);
             } catch (error) {
                 console.error("Error al cargar las emociones:", error);
+            } finally {
                 setLoading(false);
             }
         };
         fetchEmotions();
-    }, []);
+    }, [userToken]); // AÑADIDO: userToken como dependencia
 
     const handleMonthChange = (direction) => {
         setCurrentMonth(currentMonth.add(direction, "month"));
@@ -101,7 +104,7 @@ const CustomDatePicker = ({ selectedDate }) => {
                 </Text>
                 <TouchableOpacity onPress={() => handleMonthChange(-1)}>
                     <Image
-                        source={flecha}
+                        source={ASSETS.icons.general.arrow}
                         style={[
                             styles.navButton,
                             { width: 18, height: 16 },
@@ -111,7 +114,7 @@ const CustomDatePicker = ({ selectedDate }) => {
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleMonthChange(1)}>
                     <Image
-                        source={flecha2}
+                        source={ASSETS.icons.general.arrow2}
                         style={[
                             styles.navButton,
                             { width: 18, height: 16 },
@@ -176,74 +179,18 @@ const CustomDatePicker = ({ selectedDate }) => {
 };
 
 const styles = StyleSheet.create({
-    calendarWrapper: {
-        marginTop: 70,
-        padding: 20,
-        flex: 1,
-        backgroundColor: "#fff",
-        borderRadius: 12,
-        elevation: 2,
-        shadowColor: "#000",
-        shadowOpacity: 0.3,
-        shadowOffset: { width: 0, height: 7 },
-        shadowRadius: 4,
-        width: 360,
-        maxHeight: 360,
-    },
-    header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: 10,
-    },
-    navButton: {
-        fontSize: 18,
-        color: "#007AFF",
-        fontWeight: "bold",
-    },
-    monthText: {
-        fontSize: 20,
-        fontWeight: "bold",
-        color: "#333",
-        paddingLeft: 7,
-    },
-    weekRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginBottom: 5,
-    },
-    weekDayText: {
-        fontSize: 14,
-        fontWeight: "bold",
-        textAlign: "center",
-        width: 40,
-        paddingTop: 5,
-    },
-    row: {
-        justifyContent: "space-between",
-    },
-    dayContainer: {
-        width: 40,
-        height: 40,
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 5,
-    },
-    emptyDay: {
-        backgroundColor: "transparent",
-    },
-
-    dayText: {
-        fontSize: 20,
-        color: "#000",
-    },
-    emptyDayText: {
-        fontSize: 16,
-        color: "red",
-    },
-    emoji: {
-        fontSize: 20,
-    },
+    calendarWrapper: { marginTop: 70, padding: 20, flex: 1, backgroundColor: "#fff", borderRadius: 12, elevation: 2, shadowColor: "#000", shadowOpacity: 0.3, shadowOffset: { width: 0, height: 7 }, shadowRadius: 4, width: 360, maxHeight: 360, },
+    header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10, },
+    navButton: { fontSize: 18, color: "#007AFF", fontWeight: "bold", },
+    monthText: { fontSize: 20, fontWeight: "bold", color: "#333", paddingLeft: 7, },
+    weekRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 5, },
+    weekDayText: { fontSize: 14, fontWeight: "bold", textAlign: "center", width: 40, paddingTop: 5, },
+    row: { justifyContent: "space-between", },
+    dayContainer: { width: 40, height: 40, justifyContent: "center", alignItems: "center", marginBottom: 5, },
+    emptyDay: { backgroundColor: "transparent", },
+    dayText: { fontSize: 20, color: "#000", },
+    emptyDayText: { fontSize: 16, color: "red", },
+    emoji: { fontSize: 20, },
 });
 
 export default CustomDatePicker;
