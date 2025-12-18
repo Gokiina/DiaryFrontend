@@ -29,7 +29,7 @@ const Start = ({ navigation }) => {
     const [selectedEmoji, setSelectedEmoji] = useState(null);
 
     // MODIFICADO: Obtenemos también el userToken
-    const { user, userToken } = useContext(AuthContext);
+    const { user, userToken, logout } = useContext(AuthContext);
 
     const today = useMemo(() => dayjs().format("YYYY-MM-DD"), []);
 
@@ -82,6 +82,17 @@ const Start = ({ navigation }) => {
                 const response = await fetch(API_URL, {
                     headers: { 'Authorization': `Bearer ${userToken}` }
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                     console.log("Token inválido o expirado. Cerrando sesión...");
+                     await logout();
+                     return;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP Error: ${response.status}`);
+                }
+
                 const allPhrases = await response.json();
 
                 const favoritePhrases = allPhrases.filter(phrase =>
@@ -101,7 +112,7 @@ const Start = ({ navigation }) => {
         };
 
         fetchFavoritePhrases();
-    }, [favorites, userToken]); // AÑADIDO: userToken como dependencia
+    }, [favorites, userToken, logout]); // AÑADIDO: userToken como dependencia
 
     const HeaderIcon = useCallback(({ style, icon, onPress }) => (
         <TouchableOpacity style={style} onPress={onPress}>

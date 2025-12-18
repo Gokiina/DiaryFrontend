@@ -34,6 +34,15 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/favicon.png",
         "backgroundColor": "#ffffff"
+      },
+      "statusBar": {
+        "translucent": true,
+        "backgroundColor": "#00000000"
+      },
+      "navigationBar": {
+        "backgroundColor": "#00000000",
+        "barStyle": "dark-content",
+        "visible": "sticky-immersive"
       }
     },
     "web": {

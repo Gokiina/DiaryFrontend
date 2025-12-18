@@ -4,6 +4,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { ActivityIndicator, View } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { PaperProvider } from 'react-native-paper';
+import { StatusBar } from 'expo-status-bar';
 
 // --- CONTEXTOS ---
 import { AuthProvider, AuthContext } from "./components/Contexts/AuthContext";
@@ -101,6 +102,7 @@ const App = () => (
                         <DailyProvider> 
                             <RemindersProvider> 
                                 <PaperProvider>
+                                    <StatusBar style="auto" translucent={true} />
                                     <AppNavigator />
                                 </PaperProvider>
                             </RemindersProvider>

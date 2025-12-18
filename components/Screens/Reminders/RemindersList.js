@@ -18,7 +18,7 @@ const API_URL = "https://diarybackend-txxw.onrender.com/api/reminders";
 
 const ReminderList = ({ navigation }) => {
     const { isDarkMode } = useTheme();
-    const { userToken } = useContext(AuthContext);
+    const { userToken, logout } = useContext(AuthContext);
     const [reminders, setReminders] = useState([]);
     const [showCompleted, setShowCompleted] = useState(false);
     const openSwipeableRef = useRef(null);
@@ -31,6 +31,13 @@ const ReminderList = ({ navigation }) => {
                 const response = await fetch(API_URL, {
                     headers: { 'Authorization': `Bearer ${userToken}` }
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                     console.log("Token inválido o expirado en Reminders. Cerrando sesión...");
+                     await logout();
+                     return;
+                }
+
                 if (!response.ok) throw new Error("Network response was not ok");
                 const data = await response.json();
 
@@ -54,6 +61,12 @@ const ReminderList = ({ navigation }) => {
                     method: "DELETE",
                     headers: { 'Authorization': `Bearer ${userToken}` }
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                     await logout();
+                     return;
+                }
+
                 if (!response.ok) throw new Error("Network response was not ok");
                 apiActions.fetchReminders();
             } catch (error) {
@@ -68,6 +81,12 @@ const ReminderList = ({ navigation }) => {
                     method: "PATCH",
                     headers: { 'Authorization': `Bearer ${userToken}` }
                 });
+
+                if (response.status === 401 || response.status === 403) {
+                     await logout();
+                     return;
+                }
+
                 if (!response.ok) throw new Error("Network response was not ok");
 
                 setReminders(prev =>
@@ -80,7 +99,7 @@ const ReminderList = ({ navigation }) => {
                 console.error("Error toggling reminder:", error);
             }
         },
-    }), [userToken]);
+    }), [userToken, logout]);
 
     useFocusEffect(
         useCallback(() => {
