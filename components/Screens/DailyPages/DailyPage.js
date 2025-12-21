@@ -8,7 +8,8 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
-    SafeAreaView
+    SafeAreaView,
+    Image
 } from "react-native";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { DailyContext } from "../../Contexts/DailyContext";

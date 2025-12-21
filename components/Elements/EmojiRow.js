@@ -51,10 +51,10 @@ const styles = StyleSheet.create({
     emojiSet: {
         flexDirection: "column",
         alignItems: "center",
-        // Eliminado background o padding extra que pueda causar el "rectángulo"
-        padding: 5,
+        paddingHorizontal: 8,
+        paddingVertical: 5,
     },
     emoji: {
-        fontSize: 32, // Emoji más grande para estilo iOS
+        fontSize: 26, // Emoji tamaño estándar sutil
     }
 });

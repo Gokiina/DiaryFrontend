@@ -141,9 +141,13 @@ const ReminderForm = ({ navigation, route }) => {
     }, []);
 
     const handleSave = useCallback(async () => {
-        if (!userToken) return;
+        if (!userToken || isSaving) return;
+
+        setIsSaving(true);
+
         if (!formData.title.trim()) {
             setTitleError(true);
+            setIsSaving(false);
             return;
         }
     
@@ -182,7 +186,7 @@ const ReminderForm = ({ navigation, route }) => {
                             title: "Recordatorio",
                             body: formData.title,
                         },
-                        trigger: triggerDate,
+                        trigger: { type: 'date', date: triggerDate },
                     });
                 }
             }
@@ -194,8 +198,9 @@ const ReminderForm = ({ navigation, route }) => {
     
         } catch (error) {
             Alert.alert("Error", error.message);
+            setIsSaving(false);
         }
-    }, [formData, URL_REMINDERS, navigation, route?.params?.onSave, userToken]);
+    }, [formData, URL_REMINDERS, navigation, route?.params?.onSave, userToken, isSaving]);
 
     const handleUrlPress = useCallback(async () => {
         if (formData.url) {
