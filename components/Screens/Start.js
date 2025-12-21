@@ -35,11 +35,17 @@ const Start = ({ navigation }) => {
 
     const themeStyles = useMemo(() => ({
         stand: {
-            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.08)",
+            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.85)",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 5,
+            backdropFilter: 'blur(20px)', // For web support mostly, but good for intent
         },
-        text: { color: isDarkMode ? "white" : "rgba(27, 31, 38, 0.72)" },
-        subText: { color: isDarkMode ? "white" : "rgba(27, 31, 38, 0.6)" },
-        icon: { tintColor: isDarkMode ? "white" : "rgba(27, 31, 38, 0.72)" },
+        text: { color: isDarkMode ? "#FFFFFF" : "#1C1C1E" },
+        subText: { color: isDarkMode ? "#EBEBF5" : "#3C3C43" },
+        icon: { tintColor: isDarkMode ? "#FFFFFF" : "#1C1C1E" },
     }), [isDarkMode]);
 
     const handleNavigation = useCallback((screen) => { navigation.navigate(screen); }, [navigation]);
@@ -112,7 +118,7 @@ const Start = ({ navigation }) => {
         };
 
         fetchFavoritePhrases();
-    }, [favorites, userToken, logout]); // AÑADIDO: userToken como dependencia
+    }, [userToken, logout]); // Dependencia corregida: favorites eliminado para evitar bucle infinito
 
     const HeaderIcon = useCallback(({ style, icon, onPress }) => (
         <TouchableOpacity style={style} onPress={onPress}>

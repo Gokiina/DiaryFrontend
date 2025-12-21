@@ -1,150 +1,160 @@
-import React, { useState, useContext, useCallback } from "react";
+import React, { useState, useContext, useCallback, useRef, useEffect } from "react";
 import {
     View,
     Text,
-    ImageBackground,
     StyleSheet,
     TouchableOpacity,
-    Image,
+    TextInput,
     KeyboardAvoidingView,
-    TouchableWithoutFeedback,
-    Keyboard,
     Platform,
-    Alert
+    Alert,
+    SafeAreaView
 } from "react-native";
 import { useTheme } from "../../Contexts/ThemeContext";
 import { DailyContext } from "../../Contexts/DailyContext";
-import LinedTextInput from "../../Elements/LinedTextInput";
-import ASSETS from '../../Constants/ASSETS';
+import { AuthContext } from "../../Contexts/AuthContext";
 
 const API_URL = "https://diarybackend-txxw.onrender.com/api/diary";
 
 const formatDate = (date) => {
     const d = new Date(date);
-    return `${d.getDate().toString().padStart(2, "0")}.${(d.getMonth() + 1).toString().padStart(2, "0")}.${d.getFullYear()}`;
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return d.toLocaleDateString('es-ES', options);
 };
 
+// Servicio simplificado para manejar la lógica de la API
 const dailyService = {
-    async createEntry(entry) {
+    async createEntry(token, entry) {
         const response = await fetch(API_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
             },
             body: JSON.stringify(entry)
         });
-
-        if (!response.ok) {
-            throw new Error("Failed to save entry");
-        }
-
+        if (!response.ok) throw new Error("Failed to save entry");
+        return response.json();
+    },
+    async updateEntry(token, entry) {
+        const response = await fetch(`${API_URL}/${entry.id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(entry)
+        });
+        if (!response.ok) throw new Error("Failed to update entry");
         return response.json();
     }
 };
 
-const SaveButton = ({ onPress, isDarkMode }) => (
-    <TouchableOpacity style={styles.iconoAdd} onPress={onPress}>
-        <Image
-            source={ASSETS.icons.general.circleFill}
-            style={[
-                styles.iconoAdd,
-                {
-                    tintColor: isDarkMode ? "rgb(239, 239, 239)" : "white"
-                }
-            ]}
-        />
-    </TouchableOpacity>
-);
-
 const DailyPage = ({ navigation, route }) => {
     const { isDarkMode } = useTheme();
+    const { userToken } = useContext(AuthContext);
     const { agregarEntrada, actualizarEntrada } = useContext(DailyContext);
     
     const initialEntry = route.params?.entrada;
-    const isEditing = !!initialEntry;
     
+    // Estados
     const [text, setText] = useState(initialEntry?.content || "");
-    const [fecha] = useState(initialEntry?.date ? new Date(initialEntry.date) : new Date());
+    const [lastSavedText, setLastSavedText] = useState(initialEntry?.content || "");
+    const [entry, setEntry] = useState(initialEntry); // Mantiene la entrada actual (con ID si existe)
+    const [isSaving, setIsSaving] = useState(false);
 
-    const handleTextChange = useCallback((newText) => {
+    // Ref para el debounce
+    const timeoutRef = useRef(null);
+
+    const handleBack = () => {
+        navigation.goBack();
+    };
+
+    // Función de guardado
+    const saveToBackend = async (contentToSave) => {
+        if (!contentToSave.trim() || contentToSave === lastSavedText || !userToken) return;
+
+        setIsSaving(true);
+        try {
+            if (entry && entry.id) {
+                // Actualizar existente
+                const updatedData = { ...entry, content: contentToSave };
+                await dailyService.updateEntry(userToken, updatedData);
+                actualizarEntrada(updatedData); // Actualizar contexto
+                setLastSavedText(contentToSave);
+            } else {
+                // Crear nueva
+                const newEntryData = {
+                    date: new Date().toISOString(),
+                    content: contentToSave
+                };
+                const savedEntry = await dailyService.createEntry(userToken, newEntryData);
+                setEntry(savedEntry); // Guardamos la entrada creada con su ID
+                agregarEntrada(savedEntry); // Actualizar contexto
+                setLastSavedText(contentToSave);
+            }
+        } catch (error) {
+            console.error("Auto-save error:", error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // Manejador de cambio de texto con debounce
+    const handleTextChange = (newText) => {
         setText(newText);
+
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
+        timeoutRef.current = setTimeout(() => {
+            saveToBackend(newText);
+        }, 1000); // Guardar después de 1 segundo de inactividad
+    };
+
+    // Limpiar timeout al desmontar
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+            // Opcional: Guardar al salir si hay cambios pendientes?
+            // saveToBackend(text); // Puede ser arriesgado si el componente se desmonta antes de terminar
+        };
     }, []);
 
-    const saveEntry = useCallback(async () => {
-        if (!text.trim()) {
-            navigation.goBack();
-            return;
-        }
-    
-        try {
-            if (isEditing) {
-                const updatedEntry = {
-                    id: initialEntry.id,
-                    date: initialEntry.date,
-                    content: text
-                };
-                actualizarEntrada(updatedEntry);
-            } else {
-                const newEntry = {
-                    date: new Date().toISOString(),
-                    content: text
-                };
-                
-                const savedEntry = await dailyService.createEntry(newEntry);
-                agregarEntrada(savedEntry);
-            }
-            navigation.goBack();
-        } catch (error) {
-            console.error("Error saving entry:", error);
-            Alert.alert(
-                "Error",
-                isEditing 
-                    ? "No se pudo actualizar la entrada. Por favor, inténtalo de nuevo."
-                    : "No se pudo guardar la entrada. Por favor, verifica tu conexión e inténtalo de nuevo.",
-                [{ text: "OK" }]
-            );
-        }
-    }, [text, isEditing, initialEntry, navigation, actualizarEntrada, agregarEntrada]);
+    const themeStyles = {
+        bg: isDarkMode ? "#000" : "#fff",
+        text: isDarkMode ? "#fff" : "#000",
+        date: isDarkMode ? "#888" : "#888",
+    };
 
     return (
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <SafeAreaView style={[styles.container, { backgroundColor: themeStyles.bg }]}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                    <Text style={styles.backButtonText}>Diario</Text>
+                </TouchableOpacity>
+                {isSaving && <Text style={styles.savingText}>Guardando...</Text>}
+            </View>
+
             <KeyboardAvoidingView
-                style={styles.container}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
+                style={styles.content}
             >
-                <ImageBackground
-                    style={[
-                        styles.backGround,
-                        {
-                            backgroundColor: isDarkMode
-                                ? "rgb(204, 204, 204)"
-                                : "white"
-                        }
-                    ]}
-                >
-                    <Text style={styles.fecha}>
-                        {initialEntry 
-                            ? formatDate(initialEntry.date)
-                            : formatDate(fecha)
-                        }
-                    </Text>
+                <Text style={[styles.dateText, { color: themeStyles.date }]}>
+                    {formatDate(entry ? entry.date : new Date())}
+                </Text>
 
-                    <LinedTextInput
-                        isDarkMode={isDarkMode}
-                        multiline
-                        placeholder="Escribe tu entrada aquí..."
-                        placeholderTextColor="#888"
-                        onChangeText={handleTextChange}
-                        value={text}
-                    />
-
-                    <SaveButton 
-                        onPress={saveEntry}
-                        isDarkMode={isDarkMode}
-                    />
-                </ImageBackground>
+                <TextInput
+                    style={[styles.editor, { color: themeStyles.text }]}
+                    multiline
+                    placeholder="Empieza a escribir..."
+                    placeholderTextColor="#666"
+                    value={text}
+                    onChangeText={handleTextChange}
+                    textAlignVertical="top"
+                    autoFocus={!initialEntry}
+                />
             </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
+        </SafeAreaView>
     );
 };
 
@@ -152,29 +162,43 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
-    backGround: {
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+    },
+    backButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    backButtonText: {
+        fontSize: 17,
+        color: '#E0A800', // Color dorado/amarillo similar a Notas
+        fontWeight: '600',
+    },
+    savingText: {
+        fontSize: 12,
+        color: '#888',
+    },
+    content: {
         flex: 1,
-        alignItems: "center",
+        paddingHorizontal: 20,
+        paddingTop: 10,
     },
-    fecha: {
-        fontSize: 18,
-        paddingTop: 60,
-        paddingBottom: 5,
-        color: "black",
-        textAlign: "center",
-        marginVertical: 10,
-        fontWeight: "bold",
+    dateText: {
+        fontSize: 14,
+        fontWeight: '600',
+        marginBottom: 15,
+        textAlign: 'center',
+        textTransform: 'capitalize',
     },
-    iconoAdd: {
-        width: 25,
-        height: 25,
-        position: "absolute",
-        top: 35,
-        right: 20,
-        shadowOpacity: 0.2,
-        shadowRadius: 5,
-        borderRadius: 20,
-        shadowOffset: { width: 0, height: 2 },
+    editor: {
+        flex: 1,
+        fontSize: 17,
+        lineHeight: 24,
+        paddingBottom: 20,
     }
 });
 

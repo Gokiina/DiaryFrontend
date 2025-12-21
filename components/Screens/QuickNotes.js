@@ -81,18 +81,9 @@ const PaginationDots = ({ currentIndex, totalDots, isDarkMode }) => (
 );
 
 const NoteCard = ({ note, onUpdate, onDelete, isDarkMode }) => {
-    // Generar lineas de fondo para que parezca una nota real
-    const lines = [];
-    for (let i = 0; i < 20; i++) {
-        lines.push(<View key={i} style={styles.line} />);
-    }
-
     return (
         <View style={styles.noteWrapper}>
             <View style={styles.noteCard}>
-                <View style={styles.ruledBackground}>
-                    {lines}
-                </View>
                 <TextInput
                     style={styles.noteText}
                     multiline
@@ -168,10 +159,11 @@ const QuickNotes = ({ navigation }) => {
 
     const handleAddNote = useCallback(async () => {
         if (!userToken) return;
-        if (notes.some(note => !note.textNote || note.textNote.trim() === "")) {
-            Alert.alert("Nota vacía", "Por favor complete la nota actual antes de crear una nueva.");
-            return;
-        }
+
+        // Optimistic UI: Añadir nota vacía localmente primero
+        // (Aunque backend la crea, para evitar flash de "vacío" o espera)
+        // Pero aquí el usuario dijo "aparece vacía", así que mejor esperamos al backend
+        // pero nos aseguramos de scrollear.
 
         try {
             await noteService.createNote(userToken);
@@ -182,7 +174,7 @@ const QuickNotes = ({ navigation }) => {
         } catch (error) {
             console.error("Error creating note:", error);
         }
-    }, [notes, fetchNotes, userToken]);
+    }, [fetchNotes, userToken]);
 
     const handleUpdateNote = useCallback(async (id, content) => {
         if (!userToken) return;
@@ -298,36 +290,25 @@ const styles = StyleSheet.create({
         width: width - 40,
         height: width - 40,
         backgroundColor: "#fff",
-        borderRadius: 10,
-        padding: 0,
+        borderRadius: 20,
+        padding: 20,
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
+        shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
-        shadowRadius: 5,
-        elevation: 2,
-        overflow: 'hidden'
+        shadowRadius: 10,
+        elevation: 5,
+        overflow: 'hidden',
+        justifyContent: 'center'
     },
     noteText: {
         flex: 1,
-        fontSize: 18,
+        fontSize: 20, // Texto un poco más grande
         color: "#333",
         textAlignVertical: "top",
-        lineHeight: 28, // Altura de línea para alinear con el fondo
-        paddingHorizontal: 20,
-        paddingTop: 10,
+        lineHeight: 28,
         backgroundColor: 'transparent',
-        zIndex: 1
     },
-    ruledBackground: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: '#f9f5eb', // Color "papel" crema
-        zIndex: 0,
-    },
-    line: {
-        height: 28, // Debe coincidir con lineHeight
-        borderBottomWidth: 1,
-        borderBottomColor: '#dcdcdc', // Color de las líneas
-    },
+    // Eliminado ruledBackground y line
     deleteButton: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 20, marginTop: 20, flexDirection: "row", alignItems: "center", justifyContent: "center" },
     deleteButtonText: { fontSize: 15, marginLeft: 5 },
     paginationContainer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginVertical: 20, marginBottom: 110 },
