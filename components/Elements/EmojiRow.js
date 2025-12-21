@@ -1,7 +1,14 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 
+import { useTheme } from "../Contexts/ThemeContext";
+
 export const EmojiRow = ({ selected, onSelectEmoji }) => {
+    const { isDarkMode } = useTheme();
+
+    // Texto visible en ambos modos: gris oscuro en light, gris claro en dark
+    const unselectedColor = isDarkMode ? "#EBEBF5" : "#3C3C43";
+
     return (
         <View style={styles.emojiRow}>
             {["😁", "🙂", "😕", "🙁", "😖"].map((emoji, index) => (
@@ -12,11 +19,12 @@ export const EmojiRow = ({ selected, onSelectEmoji }) => {
                 >
                     <Text style={styles.emoji}>{emoji}</Text>
                     <Text
-                        style={
-                            selected === emoji
-                                ? styles.emojiTextSelect
-                                : styles.emojiTextUnS
-                        }
+                        style={{
+                            marginTop: 10,
+                            fontSize: 12,
+                            fontWeight: selected === emoji ? "600" : "400",
+                            color: selected === emoji ? "#007AFF" : unselectedColor
+                        }}
                     >
                         {emoji === "😁"
                             ? "Increíble"
@@ -39,20 +47,14 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         width: "100%",
-        fontSize: 24,
     },
     emojiSet: {
         flexDirection: "column",
         alignItems: "center",
+        // Eliminado background o padding extra que pueda causar el "rectángulo"
+        padding: 5,
     },
-    emojiTextSelect: {
-        marginTop: 10,
-        color: "rgb(0, 122, 255)",
-        fontSize: 13,
-    },
-    emojiTextUnS: {
-        marginTop: 10,
-        color: "white",
-        fontSize: 13,
-    },
+    emoji: {
+        fontSize: 32, // Emoji más grande para estilo iOS
+    }
 });
