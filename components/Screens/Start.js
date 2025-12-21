@@ -141,7 +141,6 @@ const Start = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <ImageBackground source={isDarkMode ? ASSETS.backgrounds.dark : ASSETS.backgrounds.light} style={styles.backGround}>
-                <HeaderIcon style={styles.iconNotes} icon={ASSETS.icons.navigation.notes} onPress={() => handleNavigation("QuickNotes")} />
                 <HeaderIcon style={styles.iconSettings} icon={ASSETS.icons.navigation.settings} onPress={() => handleNavigation("Settings")} />
                 <View style={[styles.standEstado, themeStyles.stand]}>
                     <TouchableOpacity onPress={() => handleNavigation("CalendarEmotions")}>

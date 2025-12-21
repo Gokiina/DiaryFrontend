@@ -89,11 +89,16 @@ const ReminderForm = ({ navigation, route }) => {
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [titleError, setTitleError] = useState(false);
+    // Evitar que tempDate se resetee incorrectamente si formData.date cambia
     const [tempDate, setTempDate] = useState(
-        formData.date ? new Date(formData.date) : new Date()
+        formData.date && !isNaN(new Date(formData.date).getTime())
+            ? new Date(formData.date)
+            : new Date()
     );
     const [tempTime, setTempTime] = useState(
-        formData.time ? new Date(`2000-01-01T${formData.time}`) : new Date()
+        formData.time && !isNaN(new Date(`2000-01-01T${formData.time}`).getTime())
+            ? new Date(`2000-01-01T${formData.time}`)
+            : new Date()
     );
 
     const URL_REMINDERS = useMemo(() => 

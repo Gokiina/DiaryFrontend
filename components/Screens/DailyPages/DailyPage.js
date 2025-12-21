@@ -18,8 +18,13 @@ const API_URL = "https://diarybackend-txxw.onrender.com/api/diary";
 
 const formatDate = (date) => {
     const d = new Date(date);
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return d.toLocaleDateString('es-ES', options);
+    const options = { weekday: 'long', day: 'numeric', month: 'long' };
+    // Ajustar manualmente para minúsculas si es necesario, aunque toLocaleDateString suele hacerlo bien en es-ES
+    // El usuario pide "Domingo 21 de diciembre".
+    // weekday devuelve "domingo", month "diciembre".
+    // Podemos capitalizar la primera letra del día.
+    const dateString = d.toLocaleDateString('es-ES', options);
+    return dateString.charAt(0).toUpperCase() + dateString.slice(1);
 };
 
 // Servicio simplificado para manejar la lógica de la API
@@ -130,7 +135,8 @@ const DailyPage = ({ navigation, route }) => {
         <SafeAreaView style={[styles.container, { backgroundColor: themeStyles.bg }]}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>Diario</Text>
+                    <Image source={ASSETS.icons.general.arrow} style={[styles.backIcon, { tintColor: '#E0A800' }]} />
+                    <Text style={styles.backButtonText}>Volver</Text>
                 </TouchableOpacity>
                 {isSaving && <Text style={styles.savingText}>Guardando...</Text>}
             </View>
@@ -173,9 +179,14 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
+    backIcon: {
+        width: 18,
+        height: 18,
+        marginRight: 4,
+    },
     backButtonText: {
         fontSize: 17,
-        color: '#E0A800', // Color dorado/amarillo similar a Notas
+        color: '#E0A800',
         fontWeight: '600',
     },
     savingText: {

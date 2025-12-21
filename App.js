@@ -17,7 +17,6 @@ import { RemindersProvider } from "./components/Contexts/RemindersContext";
 
 // --- PANTALLAS DE LA APP ---
 import CalendarEmotions from "./components/Screens/CalendarEmotions";
-import QuickNotes from "./components/Screens/QuickNotes";
 import Settings from "./components/Screens/Settings";
 import Start from "./components/Screens/Start";
 import DailyEntries from "./components/Screens/DailyPages/DailyEntries";
@@ -51,7 +50,6 @@ const AppStack = () => (
         <Stack.Screen name="Start" component={Start} />
         {/* ... el resto de tus pantallas ... */}
         <Stack.Screen name="Settings" component={Settings} options={{ presentation: 'modal' }} />
-        <Stack.Screen name="QuickNotes" component={QuickNotes} />
         <Stack.Screen name="CalendarEmotions" component={CalendarEmotions} />
         <Stack.Screen name="Phrases" component={Phrases} />
         <Stack.Screen name="PhrasesFavorite" component={PhrasesFavorite} />
