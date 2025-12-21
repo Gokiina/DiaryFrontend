@@ -15,6 +15,7 @@ import {
     Alert,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Notifications from 'expo-notifications';
 import { useTheme } from "../../Contexts/ThemeContext";
 import ASSETS from '../../Constants/ASSETS';
 import { AuthContext } from "../../Contexts/AuthContext";
@@ -135,7 +136,7 @@ const ReminderForm = ({ navigation, route }) => {
     }, []);
 
     const handleSave = useCallback(async () => {
-        if (!userToken) return; // AÑADIDO: No hacer nada si no hay token
+        if (!userToken) return;
         if (!formData.title.trim()) {
             setTitleError(true);
             return;
@@ -145,7 +146,7 @@ const ReminderForm = ({ navigation, route }) => {
             title: formData.title.trim(),
             notes: formData.notes?.trim() || "",
             url: formData.url?.trim() || "",
-            completed: false, // Asumimos que no está completado al guardar
+            completed: false,
             flagged: formData.flagged,
             date: formData.date,
             time: formData.time,
@@ -158,13 +159,27 @@ const ReminderForm = ({ navigation, route }) => {
                 method,
                 headers: { 
                     "Content-Type": "application/json",
-                    'Authorization': `Bearer ${userToken}` // AÑADIDO
+                    'Authorization': `Bearer ${userToken}`
                 },
                 body: JSON.stringify(reminderData)
             });
     
             if (!response.ok) {
                 throw new Error("No se pudo guardar el recordatorio");
+            }
+
+            // Programar notificación local si hay fecha y hora
+            if (formData.date && formData.time) {
+                const triggerDate = new Date(`${formData.date}T${formData.time}:00`);
+                if (triggerDate > new Date()) {
+                    await Notifications.scheduleNotificationAsync({
+                        content: {
+                            title: "Recordatorio",
+                            body: formData.title,
+                        },
+                        trigger: triggerDate,
+                    });
+                }
             }
     
             if (route?.params?.onSave) {
@@ -373,7 +388,7 @@ const ReminderForm = ({ navigation, route }) => {
                         const minutes = tempTime.getMinutes();
                         setFormData(prev => ({ 
                             id: prev.id, 
-                            title: text, 
+                            title: prev.title,
                             notes: prev.notes, 
                             url: prev.url, 
                             date: prev.date, 

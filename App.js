@@ -47,10 +47,10 @@ const Stack = createStackNavigator();
 
 // Navegador para la app principal (usuario logueado)
 const AppStack = () => (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, presentation: 'card' }}>
         <Stack.Screen name="Start" component={Start} />
         {/* ... el resto de tus pantallas ... */}
-        <Stack.Screen name="Settings" component={Settings} />
+        <Stack.Screen name="Settings" component={Settings} options={{ presentation: 'modal' }} />
         <Stack.Screen name="QuickNotes" component={QuickNotes} />
         <Stack.Screen name="CalendarEmotions" component={CalendarEmotions} />
         <Stack.Screen name="Phrases" component={Phrases} />
@@ -58,7 +58,7 @@ const AppStack = () => (
         <Stack.Screen name="DailyEntries" component={DailyEntries} />
         <Stack.Screen name="DailyPage" component={DailyPage} />
         <Stack.Screen name="RemindersList" component={RemindersList} />
-        <Stack.Screen name="RemindersForm" component={RemindersForm} />
+        <Stack.Screen name="RemindersForm" component={RemindersForm} options={{ presentation: 'modal' }} />
     </Stack.Navigator>
 );
 
