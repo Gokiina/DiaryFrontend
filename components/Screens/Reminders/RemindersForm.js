@@ -86,6 +86,7 @@ const ReminderForm = ({ navigation, route }) => {
         flagged: reminderToEdit?.flagged || false,
     });
 
+    const [isSaving, setIsSaving] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [titleError, setTitleError] = useState(false);

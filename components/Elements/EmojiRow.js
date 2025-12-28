@@ -51,10 +51,8 @@ const styles = StyleSheet.create({
     emojiSet: {
         flexDirection: "column",
         alignItems: "center",
-        paddingHorizontal: 8,
-        paddingVertical: 5,
     },
     emoji: {
-        fontSize: 26, // Emoji tamaño estándar sutil
+        fontSize: 24,
     }
 });

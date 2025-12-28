@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { PaperProvider } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
