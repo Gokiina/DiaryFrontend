@@ -242,7 +242,8 @@ const ReminderForm = ({ navigation, route }) => {
                 const minutes = selectedTime.getMinutes();
                  setFormData(prev => ({
                      ...prev,
-                     time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`
+                     time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
+                     flagged: true // Activar recordatorio automáticamente
                  }));
             }
         }
@@ -261,7 +262,8 @@ const ReminderForm = ({ navigation, route }) => {
         const minutes = tempTime.getMinutes();
          setFormData(prev => ({
              ...prev,
-             time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`
+             time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
+             flagged: true // Activar recordatorio automáticamente
          }));
          setShowTimePicker(false);
     };

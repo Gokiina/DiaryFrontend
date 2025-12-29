@@ -14,6 +14,7 @@ import {
 import { useTheme } from "../../Contexts/ThemeContext";
 import { DailyContext } from "../../Contexts/DailyContext";
 import { AuthContext } from "../../Contexts/AuthContext";
+import ASSETS from '../../Constants/ASSETS';
 
 const API_URL = "https://diarybackend-txxw.onrender.com/api/diary";
 

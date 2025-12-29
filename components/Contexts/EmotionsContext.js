@@ -21,7 +21,22 @@ export const EmotionsProvider = ({ children }) => {
                     'Authorization': `Bearer ${userToken}`
                 }
             });
-            const data = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    setEmotions({});
+                    return;
+                }
+                throw new Error(`HTTP Error: ${response.status}`);
+            }
+
+            const text = await response.text();
+            if (!text) {
+                setEmotions({});
+                return;
+            }
+
+            const data = JSON.parse(text);
             const emotionsMap = data.reduce((acc, { date, emotion }) => {
                 acc[date] = emotion;
                 return acc;

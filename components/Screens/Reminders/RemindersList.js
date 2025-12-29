@@ -363,6 +363,7 @@ const styles = StyleSheet.create({
     flagIcon: {
         width: 15,
         height: 15,
+        marginLeft: 10,
     },
     botonEliminar: {
         backgroundColor: "#FF6B6B",
