@@ -72,10 +72,21 @@ const DailyPage = ({ navigation, route }) => {
 
     // Ref para el debounce
     const timeoutRef = useRef(null);
+    const inputRef = useRef(null);
 
     const handleBack = () => {
         navigation.goBack();
     };
+
+    // Auto-focus al montar
+    useEffect(() => {
+        if (!initialEntry) {
+            const timer = setTimeout(() => {
+                inputRef.current?.focus();
+            }, 500); // Pequeño retraso para asegurar que la animación de navegación termine
+            return () => clearTimeout(timer);
+        }
+    }, [initialEntry]);
 
     // Función de guardado
     const saveToBackend = async (contentToSave) => {
@@ -152,6 +163,7 @@ const DailyPage = ({ navigation, route }) => {
                 </Text>
 
                 <TextInput
+                    ref={inputRef}
                     style={[styles.editor, { color: themeStyles.text }]}
                     multiline
                     placeholder="Empieza a escribir..."
@@ -159,7 +171,6 @@ const DailyPage = ({ navigation, route }) => {
                     value={text}
                     onChangeText={handleTextChange}
                     textAlignVertical="top"
-                    autoFocus={!initialEntry}
                 />
             </KeyboardAvoidingView>
         </SafeAreaView>
@@ -176,6 +187,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 20,
         paddingVertical: 10,
+        marginTop: Platform.OS === 'android' ? 40 : 0, // Aumentado margen superior para evitar solapamiento
     },
     backButton: {
         flexDirection: 'row',

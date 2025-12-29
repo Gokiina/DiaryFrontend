@@ -364,6 +364,7 @@ const styles = StyleSheet.create({
         width: 15,
         height: 15,
         marginLeft: 10,
+        alignSelf: 'center',
     },
     botonEliminar: {
         backgroundColor: "#FF6B6B",
