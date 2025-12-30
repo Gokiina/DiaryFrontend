@@ -53,6 +53,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     emoji: {
-        fontSize: 24,
+        fontSize: 20,
     }
 });

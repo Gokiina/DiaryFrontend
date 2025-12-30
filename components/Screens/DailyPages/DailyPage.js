@@ -82,8 +82,10 @@ const DailyPage = ({ navigation, route }) => {
     useEffect(() => {
         if (!initialEntry) {
             const timer = setTimeout(() => {
-                inputRef.current?.focus();
-            }, 500); // Pequeño retraso para asegurar que la animación de navegación termine
+                if (inputRef.current) {
+                    inputRef.current.focus();
+                }
+            }, 600);
             return () => clearTimeout(timer);
         }
     }, [initialEntry]);
@@ -187,7 +189,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 20,
         paddingVertical: 10,
-        marginTop: Platform.OS === 'android' ? 40 : 0, // Aumentado margen superior para evitar solapamiento
+        marginTop: Platform.OS === 'android' ? 60 : 0, // Aumentado margen superior aún más
     },
     backButton: {
         flexDirection: 'row',

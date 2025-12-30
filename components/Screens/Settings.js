@@ -66,23 +66,17 @@ const Settings = ({ navigation }) => {
         try {
             await Notifications.cancelAllScheduledNotificationsAsync();
 
-            const triggerDate = new Date();
-            triggerDate.setHours(time.getHours());
-            triggerDate.setMinutes(time.getMinutes());
-            triggerDate.setSeconds(0);
-            triggerDate.setMilliseconds(0);
-            const now = new Date();
-            if (triggerDate <= now) {
-                triggerDate.setDate(triggerDate.getDate() + 1);
-            }
-
             await Notifications.scheduleNotificationAsync({
                 content: {
                     title: NOTIFICATION_CONFIG.title,
                     body: NOTIFICATION_CONFIG.body,
                     sound: NOTIFICATION_CONFIG.sound,
                 },
-                trigger: triggerDate,
+                trigger: {
+                    hour: time.getHours(),
+                    minute: time.getMinutes(),
+                    repeats: true,
+                },
             });
         } catch (error) {
             console.error('Error scheduling notification:', error);
