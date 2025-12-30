@@ -359,12 +359,14 @@ const styles = StyleSheet.create({
     },
     reminderText: {
         fontSize: 17,
+        flex: 1, // Permite que el texto ocupe el espacio disponible
     },
     flagIcon: {
         width: 15,
         height: 15,
         marginLeft: 10,
         alignSelf: 'center',
+        flexShrink: 0, // Evita que el icono se encoja
     },
     botonEliminar: {
         backgroundColor: "#FF6B6B",

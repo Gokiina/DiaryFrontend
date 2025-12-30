@@ -35,13 +35,9 @@ const Start = ({ navigation }) => {
 
     const themeStyles = useMemo(() => ({
         stand: {
-            backgroundColor: isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.85)",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.1,
-            shadowRadius: 12,
-            elevation: 5,
-            backdropFilter: 'blur(20px)', // For web support mostly, but good for intent
+            backgroundColor: isDarkMode ? "rgba(30, 30, 30, 0.6)" : "rgba(255, 255, 255, 0.6)", // Más transparencia pero visible
+            borderRadius: 20,
+            overflow: 'hidden', // Asegura que no haya bordes rectos internos
         },
         text: { color: isDarkMode ? "#FFFFFF" : "#1C1C1E" },
         subText: { color: isDarkMode ? "#EBEBF5" : "#3C3C43" },

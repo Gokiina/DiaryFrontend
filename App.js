@@ -36,11 +36,10 @@ import EmailLoginScreen from './components/Screens/Auth/EmailLoginScreen';
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true, // Deprecated but widely used fallback
       shouldPlaySound: true,
       shouldSetBadge: false,
-      shouldShowBanner: true, // New API
-      shouldShowList: true,   // New API
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
 });
 
