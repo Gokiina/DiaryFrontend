@@ -15,6 +15,7 @@ import {
     Alert,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Notifications from 'expo-notifications';
 import { useTheme } from "../../Contexts/ThemeContext";
 import ASSETS from '../../Constants/ASSETS';
 import { AuthContext } from "../../Contexts/AuthContext";
@@ -85,14 +86,20 @@ const ReminderForm = ({ navigation, route }) => {
         flagged: reminderToEdit?.flagged || false,
     });
 
+    const [isSaving, setIsSaving] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [titleError, setTitleError] = useState(false);
+    // Evitar que tempDate se resetee incorrectamente si formData.date cambia
     const [tempDate, setTempDate] = useState(
-        formData.date ? new Date(formData.date) : new Date()
+        formData.date && !isNaN(new Date(formData.date).getTime())
+            ? new Date(formData.date)
+            : new Date()
     );
     const [tempTime, setTempTime] = useState(
-        formData.time ? new Date(`2000-01-01T${formData.time}`) : new Date()
+        formData.time && !isNaN(new Date(`2000-01-01T${formData.time}`).getTime())
+            ? new Date(`2000-01-01T${formData.time}`)
+            : new Date()
     );
 
     const URL_REMINDERS = useMemo(() => 
@@ -135,9 +142,13 @@ const ReminderForm = ({ navigation, route }) => {
     }, []);
 
     const handleSave = useCallback(async () => {
-        if (!userToken) return; // AÑADIDO: No hacer nada si no hay token
+        if (!userToken || isSaving) return;
+
+        setIsSaving(true);
+
         if (!formData.title.trim()) {
             setTitleError(true);
+            setIsSaving(false);
             return;
         }
     
@@ -145,7 +156,7 @@ const ReminderForm = ({ navigation, route }) => {
             title: formData.title.trim(),
             notes: formData.notes?.trim() || "",
             url: formData.url?.trim() || "",
-            completed: false, // Asumimos que no está completado al guardar
+            completed: false,
             flagged: formData.flagged,
             date: formData.date,
             time: formData.time,
@@ -158,13 +169,27 @@ const ReminderForm = ({ navigation, route }) => {
                 method,
                 headers: { 
                     "Content-Type": "application/json",
-                    'Authorization': `Bearer ${userToken}` // AÑADIDO
+                    'Authorization': `Bearer ${userToken}`
                 },
                 body: JSON.stringify(reminderData)
             });
     
             if (!response.ok) {
                 throw new Error("No se pudo guardar el recordatorio");
+            }
+
+            // Programar notificación local si hay fecha y hora
+            if (formData.date && formData.time) {
+                const triggerDate = new Date(`${formData.date}T${formData.time}:00`);
+                if (triggerDate > new Date()) {
+                    await Notifications.scheduleNotificationAsync({
+                        content: {
+                            title: "Recordatorio",
+                            body: formData.title,
+                        },
+                        trigger: { type: 'date', date: triggerDate },
+                    });
+                }
             }
     
             if (route?.params?.onSave) {
@@ -174,8 +199,9 @@ const ReminderForm = ({ navigation, route }) => {
     
         } catch (error) {
             Alert.alert("Error", error.message);
+            setIsSaving(false);
         }
-    }, [formData, URL_REMINDERS, navigation, route?.params?.onSave, userToken]);
+    }, [formData, URL_REMINDERS, navigation, route?.params?.onSave, userToken, isSaving]);
 
     const handleUrlPress = useCallback(async () => {
         if (formData.url) {
@@ -189,6 +215,58 @@ const ReminderForm = ({ navigation, route }) => {
             }
         }
     }, [formData.url]);
+
+    const handleDateChange = useCallback((event, selectedDate) => {
+        if (Platform.OS === 'android') {
+            setShowDatePicker(false);
+        }
+        if (selectedDate) {
+            setTempDate(selectedDate);
+            if (Platform.OS === 'android') {
+                 setFormData(prev => ({
+                     ...prev,
+                     date: selectedDate.toISOString().split('T')[0]
+                 }));
+            }
+        }
+    }, []);
+
+    const handleTimeChange = useCallback((event, selectedTime) => {
+        if (Platform.OS === 'android') {
+            setShowTimePicker(false);
+        }
+        if (selectedTime) {
+            setTempTime(selectedTime);
+            if (Platform.OS === 'android') {
+                const hours = selectedTime.getHours();
+                const minutes = selectedTime.getMinutes();
+                 setFormData(prev => ({
+                     ...prev,
+                     time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
+                     flagged: true // Activar recordatorio automáticamente
+                 }));
+            }
+        }
+    }, []);
+
+    const confirmIOSDate = () => {
+         setFormData(prev => ({
+             ...prev,
+             date: tempDate.toISOString().split('T')[0]
+         }));
+         setShowDatePicker(false);
+    };
+
+    const confirmIOSTime = () => {
+        const hours = tempTime.getHours();
+        const minutes = tempTime.getMinutes();
+         setFormData(prev => ({
+             ...prev,
+             time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
+             flagged: true // Activar recordatorio automáticamente
+         }));
+         setShowTimePicker(false);
+    };
 
     const renderDateTimeControls = () => (
         <>
@@ -246,13 +324,8 @@ const ReminderForm = ({ navigation, route }) => {
                             onChangeText={(text) => {
                                 setTitleError(false);
                                 setFormData(prev => ({ 
-                                    id: prev.id, 
-                                    title: text, 
-                                    notes: prev.notes, 
-                                    url: prev.url, 
-                                    date: prev.date, 
-                                    time: prev.time, 
-                                    flagged: prev.flagged 
+                                    ...prev,
+                                    title: text
                                 }));
                             }}
                             placeholder="Tomar 2l de agua"
@@ -269,13 +342,8 @@ const ReminderForm = ({ navigation, route }) => {
                             value={formData.notes}
                             onChangeText={(text) => 
                                 setFormData(prev => ({ 
-                                    id: prev.id, 
-                                    title: prev.title, 
-                                    notes: text, 
-                                    url: prev.url, 
-                                    date: prev.date, 
-                                    time: prev.time, 
-                                    flagged: prev.flagged 
+                                    ...prev,
+                                    notes: text
                                 }))}
                                 
                             placeholder="Notas"
@@ -291,13 +359,8 @@ const ReminderForm = ({ navigation, route }) => {
                                 value={formData.url}
                                 onChangeText={(text) => 
                                     setFormData(prev => ({ 
-                                        id: prev.id, 
-                                        title: prev.title, 
-                                        notes: prev.notes, 
-                                        url:text, 
-                                        date: prev.date, 
-                                        time: prev.time, 
-                                        flagged: prev.flagged 
+                                        ...prev,
+                                        url: text
                                     }))}
                                 placeholder="URL"
                                 placeholderTextColor={isDarkMode ? "rgba(255, 255, 255, 0.6)" : "#999"}
@@ -323,12 +386,7 @@ const ReminderForm = ({ navigation, route }) => {
                                 value={formData.flagged}
                                 onValueChange={(value) => 
                                     setFormData(prev => ({ 
-                                        id: prev.id, 
-                                        title: prev.title, 
-                                        notes: prev.notes, 
-                                        url: prev.url, 
-                                        date: prev.date, 
-                                        time: prev.time, 
+                                        ...prev,
                                         flagged: value 
                                     }))}
                                     
@@ -339,60 +397,61 @@ const ReminderForm = ({ navigation, route }) => {
                     </View>
                 </ScrollView>
 
-                <CustomModal
-                    visible={showDatePicker}
-                    onClose={() => setShowDatePicker(false)}
-                    onConfirm={() => {
-                        setFormData(prev => ({ 
-                            id: prev.id, 
-                            title: prev.title, 
-                            notes: prev.notes, 
-                            url: prev.url, 
-                            date: tempDate.toISOString().split('T')[0], 
-                            time: prev.time, 
-                            flagged: prev.flagged 
-                        }));
-                        setShowDatePicker(false);
-                    }}
-                >
-                    <DateTimePicker
-                        value={tempDate}
-                        mode="date"
-                        display={Platform.OS === "ios" ? "spinner" : "default"}
-                        onChange={(_, selectedDate) => setTempDate(selectedDate || tempDate)}
-                        locale="es-ES"
-                        textColor="black"
-                    />
-                </CustomModal>
+                {/* DatePicker Logic: Native for Android, Custom Modal for iOS */}
+                {Platform.OS === 'ios' ? (
+                     <CustomModal
+                        visible={showDatePicker}
+                        onClose={() => setShowDatePicker(false)}
+                        onConfirm={confirmIOSDate}
+                    >
+                        <DateTimePicker
+                            value={tempDate}
+                            mode="date"
+                            display="spinner"
+                            onChange={(_, selectedDate) => setTempDate(selectedDate || tempDate)}
+                            locale="es-ES"
+                            textColor="black"
+                        />
+                    </CustomModal>
+                ) : (
+                    showDatePicker && (
+                        <DateTimePicker
+                            value={tempDate}
+                            mode="date"
+                            display="default"
+                            onChange={handleDateChange}
+                            locale="es-ES"
+                        />
+                    )
+                )}
 
-                <CustomModal
-                    visible={showTimePicker}
-                    onClose={() => setShowTimePicker(false)}
-                    onConfirm={() => {
-                        const hours = tempTime.getHours();
-                        const minutes = tempTime.getMinutes();
-                        setFormData(prev => ({ 
-                            id: prev.id, 
-                            title: text, 
-                            notes: prev.notes, 
-                            url: prev.url, 
-                            date: prev.date, 
-                            time: `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`, 
-                            flagged: prev.flagged 
-                        }));
-                        setShowTimePicker(false);
-                    }}
-                >
-                    <DateTimePicker
-                        value={tempTime}
-                        mode="time"
-                        display="spinner"
-                        onChange={(_, selectedTime) => setTempTime(selectedTime || tempTime)}
-                        is24Hour={false}
-                        locale="en-US"
-                        textColor="black"
-                    />
-                </CustomModal>
+                {Platform.OS === 'ios' ? (
+                     <CustomModal
+                        visible={showTimePicker}
+                        onClose={() => setShowTimePicker(false)}
+                        onConfirm={confirmIOSTime}
+                    >
+                        <DateTimePicker
+                            value={tempTime}
+                            mode="time"
+                            display="spinner"
+                            onChange={(_, selectedTime) => setTempTime(selectedTime || tempTime)}
+                            is24Hour={false}
+                            locale="en-US"
+                            textColor="black"
+                        />
+                    </CustomModal>
+                ) : (
+                    showTimePicker && (
+                        <DateTimePicker
+                            value={tempTime}
+                            mode="time"
+                            display="default"
+                            onChange={handleTimeChange}
+                            is24Hour={false}
+                        />
+                    )
+                )}
             </ImageBackground>
         </View>
     );

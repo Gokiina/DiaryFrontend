@@ -1,9 +1,10 @@
 import React, { useContext } from 'react';
 import { createStackNavigator } from "@react-navigation/stack";
 import { NavigationContainer } from "@react-navigation/native";
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { PaperProvider } from 'react-native-paper';
+import { StatusBar } from 'expo-status-bar';
 
 // --- CONTEXTOS ---
 import { AuthProvider, AuthContext } from "./components/Contexts/AuthContext";
@@ -16,7 +17,6 @@ import { RemindersProvider } from "./components/Contexts/RemindersContext";
 
 // --- PANTALLAS DE LA APP ---
 import CalendarEmotions from "./components/Screens/CalendarEmotions";
-import QuickNotes from "./components/Screens/QuickNotes";
 import Settings from "./components/Screens/Settings";
 import Start from "./components/Screens/Start";
 import DailyEntries from "./components/Screens/DailyPages/DailyEntries";
@@ -36,9 +36,10 @@ import EmailLoginScreen from './components/Screens/Auth/EmailLoginScreen';
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
     }),
 });
 
@@ -46,18 +47,17 @@ const Stack = createStackNavigator();
 
 // Navegador para la app principal (usuario logueado)
 const AppStack = () => (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, presentation: 'card' }}>
         <Stack.Screen name="Start" component={Start} />
         {/* ... el resto de tus pantallas ... */}
-        <Stack.Screen name="Settings" component={Settings} />
-        <Stack.Screen name="QuickNotes" component={QuickNotes} />
+        <Stack.Screen name="Settings" component={Settings} options={{ presentation: 'modal' }} />
         <Stack.Screen name="CalendarEmotions" component={CalendarEmotions} />
         <Stack.Screen name="Phrases" component={Phrases} />
         <Stack.Screen name="PhrasesFavorite" component={PhrasesFavorite} />
         <Stack.Screen name="DailyEntries" component={DailyEntries} />
         <Stack.Screen name="DailyPage" component={DailyPage} />
         <Stack.Screen name="RemindersList" component={RemindersList} />
-        <Stack.Screen name="RemindersForm" component={RemindersForm} />
+        <Stack.Screen name="RemindersForm" component={RemindersForm} options={{ presentation: 'modal' }} />
     </Stack.Navigator>
 );
 
@@ -101,6 +101,7 @@ const App = () => (
                         <DailyProvider> 
                             <RemindersProvider> 
                                 <PaperProvider>
+                                    <StatusBar style="auto" translucent={true} />
                                     <AppNavigator />
                                 </PaperProvider>
                             </RemindersProvider>

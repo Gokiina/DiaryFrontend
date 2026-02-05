@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useContext, useCallback } from "react";
 // AÑADIDO: Importamos el contexto de autenticación para obtener el token
 import { AuthContext } from "./AuthContext";
 
@@ -10,7 +10,7 @@ export const EmotionsProvider = ({ children }) => {
     // AÑADIDO: Obtenemos el token del AuthContext
     const { userToken } = useContext(AuthContext);
 
-    const fetchEmotions = async () => {
+    const fetchEmotions = useCallback(async () => {
         // AÑADIDO: Si no hay token, no hacemos la petición
         if (!userToken) return;
 
@@ -21,7 +21,22 @@ export const EmotionsProvider = ({ children }) => {
                     'Authorization': `Bearer ${userToken}`
                 }
             });
-            const data = await response.json();
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    setEmotions({});
+                    return;
+                }
+                throw new Error(`HTTP Error: ${response.status}`);
+            }
+
+            const text = await response.text();
+            if (!text) {
+                setEmotions({});
+                return;
+            }
+
+            const data = JSON.parse(text);
             const emotionsMap = data.reduce((acc, { date, emotion }) => {
                 acc[date] = emotion;
                 return acc;
@@ -30,9 +45,9 @@ export const EmotionsProvider = ({ children }) => {
         } catch (error) {
             console.error("Error al cargar emociones:", error);
         }
-    };
+    }, [userToken]);
 
-    const saveEmotion = async (date, emotion) => {
+    const saveEmotion = useCallback(async (date, emotion) => {
         if (!userToken) return;
 
         try {
@@ -57,7 +72,7 @@ export const EmotionsProvider = ({ children }) => {
         } catch (error) {
             console.error("Error al guardar la emoción:", error);
         }
-    };
+    }, [userToken]);
 
     return (
         <EmotionsContext.Provider

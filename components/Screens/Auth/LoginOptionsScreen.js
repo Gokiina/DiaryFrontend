@@ -87,6 +87,7 @@ const styles = StyleSheet.create({
         width: 24,
         height: 24,
         marginRight: 10,
+        backgroundColor: 'transparent',
     },
     optionText: {
         fontSize: 16,
